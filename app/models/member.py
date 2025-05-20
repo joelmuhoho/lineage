@@ -10,7 +10,7 @@ class Member(db.Model):
     birthdate = db.Column(db.Date)
     deathdate = db.Column(db.Date)
     gender = db.Column(db.String(10))
-    root = db.Column(db.Boolean)
+    root = db.Column(db.Boolean, default=False)
     alive = db.Column(db.Boolean)
     mother = db.Column(db.Integer, nullable=True)
     father = db.Column(db.Integer, nullable=True)
