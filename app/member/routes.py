@@ -5,51 +5,70 @@ from app.extensions import db
 from .forms import MemberForm
 from app.models import Member, Relationship
 from app.utils.constants import RelationshipConstants
+from .services import MemberService, RelationshipService
 
 
-#Add family member
-# Add root member
 def add_root(family_id, memberForm={}):
-    if not memberForm == {}:
-        form = memberForm
-        newMember = Member(first_name = form.first_name.data,
-                           last_name = form.last_name.data,
-                           birthdate = form.birthdate.data,
-                           gender = form.gender.data,
-                           root=True,
-                           family_id = family_id,
-                           alive = eval(form.alive.data),
-                           deathdate = form.deathdate.data,
-                           )
-        db.session.add(newMember)
-        db.session.commit()
+    if memberForm:
+        data, status = MemberService.create_member(
+            first_name=memberForm.first_name.data,
+            last_name=memberForm.last_name.data,
+            birthdate=memberForm.birthdate.data,
+            gender=memberForm.gender.data,
+            root=True,
+            family_id=family_id,
+            alive=eval(memberForm.alive.data),
+            deathdate=memberForm.deathdate.data)
+
+        newMember, message, category = data.get('member'), data.get('message'), data.get('category')
+
+        if status != 201:
+            flash(message, category)
+            return redirect(url_for('family.create_family'))
+
         flash(f'{newMember.first_name} {newMember.last_name} added as a root Member', 'success')
         return redirect(url_for('family.index'))
-    flash('Something went wrong Root member not Added', 'danger')
-    return redirect(url_for('family.create_family'))
 
 @bp.route('/member/<member_id>/spouse', methods=['GET', 'POST'])
 @login_required
 def add_spouse(member_id):
     form = MemberForm(add_relative_mode=RelationshipConstants.Spouse)
-    member1 = Member.query.filter_by(member_id=member_id).first()
+
+    data, status = MemberService.get_member(member_id)
+    print('data', data)
+    member1, message, category = data.get('data'), data.get('message'), data.get('category')
+    if status != 200:
+        flash(message, category)
+        return redirect(url_for('family.index'))
+
     family_id = member1.family_id
     title = f'Adding spouse of {member1.first_name} {member1.last_name}'
+
     if form.validate_on_submit():
-        newMember = Member(first_name = form.first_name.data,
-                           last_name = form.last_name.data,
-                           birthdate = form.birthdate.data,
-                           gender = form.gender.data,
-                           root=False,
-                           family_id = family_id,
-                           alive = eval(form.alive.data),
-                           deathdate = form.deathdate.data,
-                           )
-        db.session.add(newMember)
-        db.session.commit()
+        data, status = MemberService.create_member(
+            first_name=form.first_name.data,
+            last_name=form.last_name.data,
+            birthdate=form.birthdate.data,
+            gender=form.gender.data,
+            family_id=family_id,
+            alive=eval(form.alive.data),
+            deathdate=form.deathdate.data,
+            )
+        newMember, message, category = data.get('data'), data.get('message'), data.get('category')
+        if status != 201:
+            flash(message, category)
+            return redirect(url_for('family.index'))
+
+        data, status = RelationshipService.create_relationship(member1.member_id,
+                                                newMember.member_id, form.relationship.data)
+        message, category = data.get('message'), data.get('category')
+        if status != 201:
+            flash(message, category)
+            return redirect(url_for('family.index'))
+
         flash(f'{newMember.first_name} added as spouse to {member1.first_name} {member1.last_name}', 'success')
-        add_relationship(member1.member_id, newMember.member_id, form.relationship.data)
         return redirect(url_for('family.index'))
+
     return render_template('add_member.html', title=title, form=form, families=current_user.families, member1=member1)
 
 @bp.route('/member/<member_id>/<spouse_id>/child', methods=['GET', 'POST'])
