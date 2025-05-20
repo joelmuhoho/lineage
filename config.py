@@ -6,7 +6,7 @@ load_dotenv()
 
 class Config:
     # General Config
-    SECRET_KEY = os.getenv('SECRET_KEY', 'jewl;asa445siweijkdsuei544554e689()')
+    SECRET_KEY = os.getenv('SECRET_KEY', os.urandom(16).hex())
     FLASK_APP = os.getenv('FLASK_APP', 'run.py')
     FLASK_ENV = os.getenv('FLASK_ENV', 'development')
 
@@ -31,7 +31,7 @@ class Config:
     GUEST_EMAIL = os.getenv('GUEST_EMAIL')
     GUEST_PASSWORD = os.getenv('GUEST_PASSWORD')
 
-    SALT = os.getenv('SALT')
+    SALT = os.getenv('SALT', os.urandom(16).hex())
     SECRET_KEY = os.getenv('SECRET_KEY')
 
 class DevelopmentConfig(Config):
@@ -47,7 +47,7 @@ class TestingConfig(Config):
 class ProductionConfig(Config):
     FLASK_ENV = 'production'
     DEBUG = False
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
+    SQLALCHEMY_DATABASE_URI = os.getenv('LINEAGE_DATABASE_URI')
 
 # Config selector
 config_dict = {
