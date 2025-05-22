@@ -50,27 +50,20 @@
         {% endif %}
 
         <!-- Parent Info -->
-        {% if member.mother %}
-        {% for family_member in family_members %}
-        {% if family_member.member_id == member.mother %}
-        <div class="bg-white shadow-md rounded-lg p-6">
-            <h4 class="text-lg font-semibold text-gray-800">Mother</h4>
-            <p class="text-gray-600">{{family_member.first_name}} {{family_member.last_name}}</p>
-        </div>
-        {% endif %}
-        {% endfor %}
-        {% endif %}
-
-        {% if member.father %}
-        {% for family_member in family_members %}
-        {% if family_member.member_id == member.father %}
+        {% if father %}
         <div class="bg-white shadow-md rounded-lg p-6">
             <h4 class="text-lg font-semibold text-gray-800">Father</h4>
-            <p class="text-gray-600">{{ family_member.first_name }} {{ family_member.last_name }}</p>
+            <p class="text-gray-600">{{ father.first_name }} {{ father.last_name }}</p>
         </div>
         {% endif %}
-        {% endfor %}
+
+        {% if mother %}
+        <div class="bg-white shadow-md rounded-lg p-6">
+            <h4 class="text-lg font-semibold text-gray-800">Mother</h4>
+            <p class="text-gray-600">{{mother.first_name}} {{mother.last_name}}</p>
+        </div>
         {% endif %}
+
     </div>
 
     <!-- Family Relations (Siblings, Spouses, Children) -->
