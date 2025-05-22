@@ -77,35 +77,55 @@ def add_child(member_id, spouse_id):
     form = MemberForm(add_relative_mode=RelationshipConstants.Child)
     father = ''
     mother = ''
-    member1 = Member.query.filter_by(member_id=member_id).first()
-    spouse = Member.query.filter_by(member_id=spouse_id).first()
+
+    data, status = MemberService.get_member(member_id)
+    member1, message, category = data.get('data'), data.get('message'), data.get('category')
+    if status != 200:
+        flash(message, category)
+        return redirect(url_for('family.index'))
+
+    data, status = MemberService.get_member(spouse_id)
+    spouse, message, category = data.get('data'), data.get('message'), data.get('category')
+    if status != 200:
+        flash(message, category)
+        return redirect(url_for('family.index'))
+
     if member1.gender == 'Male':
         father = member1
         mother = spouse
     else:
         mother = member1
         father = spouse
+
     family_id = member1.family_id
+
     if form.validate_on_submit():
-        newMember = Member(first_name = form.first_name.data,
-                           last_name = form.last_name.data,
-                           birthdate = form.birthdate.data,
-                           gender = form.gender.data,
-                           root=False,
-                           family_id = family_id,
-                           alive = eval(form.alive.data),
-                           deathdate = form.deathdate.data,
-                           father = father.member_id,
-                           mother = mother.member_id
-                           )
-        db.session.add(newMember)
-        db.session.commit()
+        data, status = MemberService.create_member(
+            first_name=form.first_name.data,
+            last_name=form.last_name.data,
+            birthdate=form.birthdate.data,
+            gender=form.gender.data,
+            family_id=family_id,
+            alive=eval(form.alive.data),
+            deathdate=form.deathdate.data,
+            father=father.member_id,
+            mother=mother.member_id
+            )
+        newMember, message, category = data.get('data'), data.get('message'), data.get('category')
+        if status != 201:
+            flash(message, category)
+            return redirect(url_for('family.index'))
+
+        data, status = RelationshipService.create_relationship(spouse.member_id, newMember.member_id, form.relationship.data)
+        message, category = data.get('message'), data.get('category')
+        if status != 201:
+            flash(message, category)
+            return redirect(url_for('family.index'))
+
         flash(f'{newMember.first_name} {newMember.last_name} added as child to {member1.first_name} {member1.last_name} and {spouse.first_name} {spouse.last_name}', 'success')
-        add_relationship(spouse.member_id, newMember.member_id, form.relationship.data)
         return redirect(url_for('family.index'))
     return render_template('add_member.html', title='Add child', form=form, families=current_user.families, member1=member1)
 
-# member profile
 @bp.route('/member/<member_id>', methods=['GET'])
 @login_required
 def member_profile(member_id):
@@ -262,9 +282,3 @@ def get_nuclear():
         nuclear_family['children'].append(child_member)
     response =  make_response(jsonify(nuclear_family), 200)
     return response
-
-# make a relationship between member_1 and member_2
-def add_relationship(member1_id, member2_id, relationship_type):
-    new_relationship = Relationship(member_id_1=member1_id, member_id_2=member2_id, relationship_type=relationship_type)
-    db.session.add(new_relationship)
-    db.session.commit()
