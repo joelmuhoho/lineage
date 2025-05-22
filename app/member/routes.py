@@ -35,9 +35,11 @@ def add_spouse(member_id):
     form = MemberForm(add_relative_mode=RelationshipConstants.Spouse)
 
     data, status = MemberService.get_member(member_id)
-    print('data', data)
     member1, message, category = data.get('data'), data.get('message'), data.get('category')
     if status != 200:
+        flash(message, category)
+        return redirect(url_for('family.index'))
+    elif not member1:
         flash(message, category)
         return redirect(url_for('family.index'))
 
@@ -83,10 +85,16 @@ def add_child(member_id, spouse_id):
     if status != 200:
         flash(message, category)
         return redirect(url_for('family.index'))
+    elif not member1:
+        flash(message, category)
+        return redirect(url_for('family.index'))
 
     data, status = MemberService.get_member(spouse_id)
     spouse, message, category = data.get('data'), data.get('message'), data.get('category')
     if status != 200:
+        flash(message, category)
+        return redirect(url_for('family.index'))
+    elif not spouse:
         flash(message, category)
         return redirect(url_for('family.index'))
 
@@ -129,41 +137,48 @@ def add_child(member_id, spouse_id):
 @bp.route('/member/<member_id>', methods=['GET'])
 @login_required
 def member_profile(member_id):
-    member = Member.query.filter_by(member_id=member_id).first()
-    family_id = member.family_id
-    family_members = Member.query.filter_by(family_id=family_id).all()
-    family_members = [ family_member for family_member in family_members if not family_member.member_id == member.member_id]
+    data, status = MemberService.get_member(member_id)
+    member, message, category = data.get('data'), data.get('message'), data.get('category')
+    if status != 200:
+        flash(message, category)
+        return redirect(url_for('family.index'))
+    elif not member:
+        flash(message, category)
+        return redirect(url_for('family.index'))
 
-    # get sibling
-    siblings = [ person for person in family_members if person.mother and person.mother == member.mother]
+    data, status = MemberService.get_member(member.mother)
+    mother = data.get('data')
+    if status != 200:
+        flash(message, category)
 
-    # get children
-    childrenMother = Member.query.filter_by(mother=member_id).all()
-    childrenFather = Member.query.filter_by(father=member_id).all()
-    children = []
-    if childrenFather:
-        children = childrenFather
-    elif childrenMother:
-        children = childrenMother
+    data, status = MemberService.get_member(member.father)
+    father = data.get('data')
+    if status != 200:
+        flash(message, category)
 
-    # get spouse
-    spousesMember1 = Relationship.query.filter_by(member_id_1=member.member_id).filter_by(relationship_type='spouse').all()
-    spousesMember2 = Relationship.query.filter_by(member_id_2=member.member_id).filter_by(relationship_type='spouse').all()
-    allSpouses = []
-    for spouse in spousesMember1:
-        if not spouse.member_id_1 == member_id:
-            memberSpouse = Member.query.filter_by(member_id=spouse.member_id_2).first()
-            allSpouses.append(memberSpouse)
-    for spouse in spousesMember2:
-        if not spouse.member_id_2 == member_id:
-            memberSpouse = Member.query.filter_by(member_id=spouse.member_id_1).first()
-            allSpouses.append(memberSpouse)
+    data, status = MemberService.get_member_siblings(member_id)
+    siblings, message, category = data.get('data'), data.get('message'), data.get('category')
+    if status != 200:
+        flash(message, category)
+
+    # TODO: include step siblings
+
+    data, status = MemberService.get_member_children(member_id)
+    children, message, category = data.get('data'), data.get('message'), data.get('category')
+    if status != 200:
+        flash(message, category)
+
+    data, status = MemberService.get_member_spouses(member_id)
+    spouses, message, category = data.get('data'), data.get('message'), data.get('category')
+    if status != 200:
+        flash(message, category)
 
     return render_template('member_profile.html', title=f'{member.first_name} information ',
                            member=member,
-                           family_members=family_members,
+                           father=father,
+                           mother=mother,
                            siblings=siblings,
-                           spouses=allSpouses,
+                           spouses=spouses,
                            children=children)
 
 
