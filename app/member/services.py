@@ -24,10 +24,11 @@ class MemberService:
             member = db.session.query(Member).filter_by(member_id=member_id).first()
 
             if not member:
-                return service_response(404, "Member not found", "warning", None)
+                return service_response(200, "Member not found", "warning", None)
             return service_response(200, "Member retrieved successfully", "success", member)
         except Exception as e:
-            return service_response(500, "Error retrieving member: " + str(e), "danger", None)
+            # TODO: log error
+            return service_response(500, "Error retrieving member", "danger", None)
 
     @staticmethod
     def create_member(**member_data) -> Tuple[dict, int]:
@@ -47,8 +48,145 @@ class MemberService:
             return service_response(201, "Member created successfully", "success", new_member)
         except Exception as e:
             db.session.rollback()
-            return service_response(500, "Error creating member: " + str(e), "danger", None)
+            # TODO: log error
+            return service_response(500, "Error creating member", "danger", None)
 
+    @staticmethod
+    def get_members_of_family(family_id: int) -> Tuple[dict, int]:
+        """
+        Retrieves all members of a family by family ID.
+
+        Args:
+            family_id (int): The ID of the family.
+
+        Returns:
+            Tuple[dict, int]: A tuple containing a dictionary with the response message and
+            the HTTP status code. If members are found, the dictionary will include the
+            member data with a success message. If not found, it will contain an error message.
+        """
+        try:
+            members = db.session.query(Member).filter_by(family_id=family_id).all()
+
+            if not members:
+                return service_response(200, "No members found for this family", "warning", None)
+            return service_response(200, "Members retrieved successfully", "success", members)
+        except Exception as e:
+            # TODO: log error
+            return service_response(500, "Error retrieving members", "danger", None)
+
+    @staticmethod
+    def get_member_siblings(member_id: int) -> Tuple[dict, int]:
+        """
+        Retrieves all siblings of a family member by their member ID.
+
+        Args:
+            member_id (int): The ID of the member.
+
+        Returns:
+            Tuple[dict, int]: A tuple containing a dictionary with the response message and
+            the HTTP status code. If siblings are found, the dictionary will include the
+            sibling data with a success message. If not found, it will contain an error message.
+        """
+        try:
+            data, status = MemberService.get_member(member_id)
+            current_member = data.get('data')
+            if status != 200:
+                return data, status
+            elif not current_member:
+                return data, status
+
+            siblings = db.session.query(Member).where(
+                Member.mother != None,
+                Member.mother == current_member.mother,
+                Member.father != None,
+                Member.father == current_member.father,
+                Member.member_id != current_member.member_id,
+            ).order_by(Member.birthdate).all()
+
+            if not siblings:
+                return service_response(200, "No siblings found", "warning", None)
+            return service_response(200, "Siblings retrieved successfully", "success", siblings)
+        except Exception as e:
+            # TODO: log error
+            return service_response(500, "Error retrieving siblings", "danger", None)
+
+    @staticmethod
+    def get_member_children(member_id: int) -> Tuple[dict, int]:
+        """
+        Retrieves all children of a family member by their member ID.
+
+        Args:
+            member_id (int): The ID of the member.
+
+        Returns:
+            Tuple[dict, int]: A tuple containing a dictionary with the response message and
+            the HTTP status code. If children are found, the dictionary will include the
+            child data with a success message. If not found, it will contain an error message.
+        """
+        try:
+            data, status = MemberService.get_member(member_id)
+            current_member = data.get('data')
+            if status != 200:
+                return data, status
+            elif not current_member:
+                return data, status
+
+            children = db.session.query(Member).where(
+                db.or_(
+                Member.mother == current_member.member_id,
+                Member.father == current_member.member_id
+                )
+            ).order_by(Member.birthdate).all()
+
+            if not children:
+                return service_response(200, "No children found", "warning", None)
+            return service_response(200, "Children retrieved successfully", "success", children)
+        except Exception as e:
+            # TODO: log error
+            return service_response(500, "Error retrieving children: ", "danger", None)
+
+    @staticmethod
+    def get_member_spouses(member_id: int) -> Tuple[dict, int]:
+        """
+        Retrieves all spouses of a family member by their member ID.
+
+        Args:
+            member_id (int): The ID of the member.
+
+        Returns:
+            Tuple[dict, int]: A tuple containing a dictionary with the response message and
+            the HTTP status code. If spouses are found, the dictionary will include the
+            spouse data with a success message. If not found, it will contain an error message.
+        """
+        try:
+            data, status = MemberService.get_member(member_id)
+            current_member = data.get('data')
+            if status != 200:
+                return data, status
+            elif not current_member:
+                return data, status
+
+            spouses_relationships = db.session.query(Relationship).where(
+                db.or_(
+                Relationship.member_id_1==current_member.member_id,
+                Relationship.member_id_2==current_member.member_id,
+                ),
+                Relationship.relationship_type=='spouse'
+                ).all()
+
+            spouses = []
+            for relationship in spouses_relationships:
+                if relationship.member1 != current_member:
+                    spouses.append(relationship.member1)
+                else:
+                    spouses.append(relationship.member2)
+
+            if not spouses:
+                return service_response(200, "No spouses found", "warning", None)
+            return service_response(200, "Spouses retrieved successfully", "success", spouses)
+        except Exception as e:
+            # TODO: log error
+            return service_response(500, "Error retrieving spouses", "danger", None)
 
 class RelationshipService:
     """Service class for managing relationships between family members."""
@@ -72,4 +210,5 @@ class RelationshipService:
             return service_response(201, "Relationship created successfully", "success", new_relationship)
         except Exception as e:
             db.session.rollback()
-            return service_response(500, "Error creating relationship: " + str(e), "danger", None)
+            # TODO: log error
+            return service_response(500, "Error creating relationship", "danger", None)
