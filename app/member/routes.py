@@ -228,10 +228,14 @@ def get_spouse():
     elif "member1_id" not in data:
         return make_response(jsonify({"error": "Missing member1_id"}), 400)
     spousesList = []
-    spouses = Relationship.query.filter_by(member_id_1=int(data['member1_id']), relationship_type='spouse').all()
+    data, status = MemberService.get_member_spouses(member_id=int(data['member1_id']))
+    if status != 200:
+        message, category = data.get('message'), data.get('category')
+        return make_response(jsonify({category: message}), status)
+    spouses = data.get('data')
+
     for spouse in spouses:
-        spouse_member = Member.query.filter_by(member_id=spouse.member_id_2).first()
-        spouse_member = spouse_member.__dict__
+        spouse_member = spouse.__dict__
         del spouse_member['_sa_instance_state']
         spousesList.append(spouse_member)
     if current_user.is_authenticated:
@@ -241,7 +245,6 @@ def get_spouse():
     response =  make_response(jsonify(spousesList, login), 200)
     return response
 
-# return child/children
 @bp.route('/member/children', methods=['POST', 'GET'])
 @login_required
 def get_children():
@@ -252,30 +255,32 @@ def get_children():
         return make_response(jsonify({"error": "Missing member1_id"}), 400)
     elif "spouse_id" not in data:
         return make_response(jsonify({"error": "Missing spouse_id"}), 400)
-    member1 = Member.query.filter_by(member_id=data['member1_id']).first()
-    spouse = Member.query.filter_by(member_id=data['spouse_id']).first()
-    if member1.gender == 'Male':
-        father = member1
-        mother = spouse
-    else:
-        mother = member1
-        father = spouse
+
+    member_id = int(data['member1_id'])
+    spouse_id = int(data['spouse_id'])
+    parent_ids = [member_id, spouse_id]
+
+    data, status = MemberService.get_member_children(member_id=member_id)
+    if status != 200:
+        message, category = data.get('message'), data.get('category')
+        return make_response(jsonify({category: message}), status)
+
+    children = data.get('data')
     childrenList = []
-    fatherMotherRelation = Relationship.query.filter_by(member_id_1=member1.member_id, member_id_2=spouse.member_id).first()
-    fatherMotherRelation = fatherMotherRelation.relationship_type
-    if fatherMotherRelation == 'spouse':
-        children = Relationship.query.filter_by(member_id_1=spouse.member_id, relationship_type='child').all()
+
+    if children:
         for child in children:
-            child_member = Member.query.filter_by(member_id=child.member_id_2).first()
-            child_member = child_member.__dict__
-            del child_member['_sa_instance_state']
-            childrenList.append(child_member)
-        if current_user.is_authenticated:
-            login = {'authenticated': True}
-        else:
-            login = {'authenticated': False}
-        response =  make_response(jsonify(childrenList, login), 200)
-        return response
+            if child.father in parent_ids and child.mother in parent_ids:
+                child_member = child.__dict__
+                del child_member['_sa_instance_state']
+                childrenList.append(child_member)
+
+    if current_user.is_authenticated:
+        login = {'authenticated': True}
+    else:
+        login = {'authenticated': False}
+    response =  make_response(jsonify(childrenList, login), 200)
+    return response
 
 # @bp.route('/member/nuclear', methods=['POST', 'GET'])
 @login_required
