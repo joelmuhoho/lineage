@@ -35,14 +35,12 @@ def add_spouse(member_id):
     form = MemberForm(add_relative_mode=RelationshipConstants.Spouse)
 
     data, status = MemberService.get_member(member_id)
-    member1, message, category = data.get('data'), data.get('message'), data.get('category')
     if status != 200:
-        flash(message, category)
-        return redirect(url_for('family.index'))
-    elif not member1:
+        message, category = data.get('message'), data.get('category')
         flash(message, category)
         return redirect(url_for('family.index'))
 
+    member1 = data.get('data')
     family_id = member1.family_id
     title = f'Adding spouse of {member1.first_name} {member1.last_name}'
 
@@ -81,22 +79,20 @@ def add_child(member_id, spouse_id):
     mother = ''
 
     data, status = MemberService.get_member(member_id)
-    member1, message, category = data.get('data'), data.get('message'), data.get('category')
     if status != 200:
-        flash(message, category)
-        return redirect(url_for('family.index'))
-    elif not member1:
+        message, category = data.get('message'), data.get('category')
         flash(message, category)
         return redirect(url_for('family.index'))
 
+    member1 = data.get('data')
+
     data, status = MemberService.get_member(spouse_id)
-    spouse, message, category = data.get('data'), data.get('message'), data.get('category')
     if status != 200:
+        message, category = data.get('message'), data.get('category')
         flash(message, category)
         return redirect(url_for('family.index'))
-    elif not spouse:
-        flash(message, category)
-        return redirect(url_for('family.index'))
+
+    spouse = data.get('data')
 
     if member1.gender == 'Male':
         father = member1
@@ -138,23 +134,22 @@ def add_child(member_id, spouse_id):
 @login_required
 def member_profile(member_id):
     data, status = MemberService.get_member(member_id)
-    member, message, category = data.get('data'), data.get('message'), data.get('category')
     if status != 200:
+        message, category = data.get('message'), data.get('category')
         flash(message, category)
         return redirect(url_for('family.index'))
-    elif not member:
-        flash(message, category)
-        return redirect(url_for('family.index'))
+
+    member = data.get('data')
 
     data, status = MemberService.get_member(member.mother)
     mother = data.get('data')
-    if status != 200:
-        flash(message, category)
 
     data, status = MemberService.get_member(member.father)
-    father = data.get('data')
     if status != 200:
+        message, category = data.get('message'), data.get('category')
         flash(message, category)
+
+    father = data.get('data')
 
     data, status = MemberService.get_member_siblings(member_id)
     siblings, message, category = data.get('data'), data.get('message'), data.get('category')
@@ -186,20 +181,34 @@ def member_profile(member_id):
 @login_required
 def update_member(member_id):
     form = MemberForm()
-    member = Member.query.filter_by(member_id=member_id).first()
+
+    data, status = MemberService.get_member(member_id)
+    if status != 200:
+        message, category = data.get('message'), data.get('category')
+        flash(message, category)
+        return redirect(url_for('family.index'))
+
+    member = data.get('data')
 
     if form.validate_on_submit():
-        member.first_name = form.first_name.data
-        member.last_name = form.last_name.data
-        member.birthdate = form.birthdate.data
-        member.gender = form.gender.data
-        member.deathdate = form.deathdate.data
-        member.alive = eval(form.alive.data)
-        db.session.commit()
-        flash(f'{member.first_name} changes have been Updated.', 'success')
+        data, status = MemberService.update_member(
+            member_id=member.member_id,
+            first_name=form.first_name.data,
+            last_name=form.last_name.data,
+            birthdate=form.birthdate.data,
+            gender=form.gender.data,
+            deathdate=form.deathdate.data,
+            alive=eval(form.alive.data),
+            )
+        message, category = data.get('message'), data.get('category')
+        if status != 200:
+            flash(message, category)
+            return redirect(url_for('member.update_member', member_id=member.member_id))
+
+        flash(message, category)
         return redirect(url_for('member.member_profile', member_id=member.member_id))
-    return render_template('update_member.html', title=f'Update {member.first_name} information ',
-                           form=form, member=member)
+
+    return render_template('update_member.html', title=f'Update {member.first_name} information ', form=form, member=member)
 
 @bp.route('/delete_member/<member_id>')
 @login_required
