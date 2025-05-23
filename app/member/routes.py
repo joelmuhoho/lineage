@@ -213,15 +213,9 @@ def update_member(member_id):
 @bp.route('/delete_member/<member_id>')
 @login_required
 def delete_member(member_id):
-    member = Member.query.filter_by(member_id=member_id).first()
-    # user deleting member should be in sane family as member
-    currentUserFamilyIds = [family.family_id for family in current_user.families ]
-    if member and member.family_id in currentUserFamilyIds:
-        db.session.delete(member)
-        db.session.commit()
-        flash(f'{member.first_name} has been Deleted', 'success')
-        return redirect(url_for('family.index'))
-    flash('Not allowed to Delete', 'danger')
+    data, _ = MemberService.delete_member(member_id)
+    message, category = data.get('message'), data.get('category')
+    flash(message, category)
     return redirect(url_for('family.index'))
 
 # API call
