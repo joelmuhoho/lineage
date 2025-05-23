@@ -7,7 +7,7 @@ class MemberService:
     """Service class for managing family members."""
 
     @staticmethod
-    def get_member(member_id: int) -> Tuple[dict, int]:
+    def get_member(member_id: int) -> Tuple[dict, int]: #TODO: get multiple members by id in a list [id1, id2, id3] -> [member1, member2, member3]
         """
         Retrieves a family member by their member ID.
 
@@ -24,7 +24,7 @@ class MemberService:
             member = db.session.query(Member).filter_by(member_id=member_id).first()
 
             if not member:
-                return service_response(200, "Member not found", "warning", None)
+                return service_response(404, "Member not found", "warning", None)
             return service_response(200, "Member retrieved successfully", "success", member)
         except Exception as e:
             # TODO: log error
@@ -89,11 +89,9 @@ class MemberService:
         """
         try:
             data, status = MemberService.get_member(member_id)
-            current_member = data.get('data')
             if status != 200:
                 return data, status
-            elif not current_member:
-                return data, status
+            current_member = data.get('data')
 
             siblings = db.session.query(Member).where(
                 Member.mother != None,
@@ -125,11 +123,9 @@ class MemberService:
         """
         try:
             data, status = MemberService.get_member(member_id)
-            current_member = data.get('data')
             if status != 200:
                 return data, status
-            elif not current_member:
-                return data, status
+            current_member = data.get('data')
 
             children = db.session.query(Member).where(
                 db.or_(
@@ -160,11 +156,9 @@ class MemberService:
         """
         try:
             data, status = MemberService.get_member(member_id)
-            current_member = data.get('data')
             if status != 200:
                 return data, status
-            elif not current_member:
-                return data, status
+            current_member = data.get('data')
 
             spouses_relationships = db.session.query(Relationship).where(
                 db.or_(
@@ -187,6 +181,34 @@ class MemberService:
         except Exception as e:
             # TODO: log error
             return service_response(500, "Error retrieving spouses", "danger", None)
+
+    @staticmethod
+    def update_member(member_id: int, **member_data) -> Tuple[dict, int]:
+        """
+        Updates a family member's information.
+
+        Args:
+            member_id (int): The ID of the member to update.
+            **member_data: A dictionary with updated member data.
+
+        Returns:
+            Tuple[dict, int]: A tuple containing a dictionary and HTTP status code.
+        """
+        try:
+            data, status = MemberService.get_member(member_id)
+            if status != 200:
+                return data, status
+            member = data.get('data')
+
+            for key, value in member_data.items():
+                setattr(member, key, value)
+
+            db.session.commit()
+            return service_response(200, "Member updated successfully", "success", member)
+        except Exception as e:
+            db.session.rollback()
+            # TODO: log error
+            return service_response(500, "Error updating member", "danger", None)
 
 class RelationshipService:
     """Service class for managing relationships between family members."""
