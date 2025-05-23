@@ -1,6 +1,7 @@
 from app.extensions import db
 from app.models import Member, Relationship
 from app.services.service_base import service_response
+from flask_login import current_user
 from typing import Tuple
 
 class MemberService:
@@ -25,10 +26,25 @@ class MemberService:
 
             if not member:
                 return service_response(404, "Member not found", "warning", None)
+            elif not MemberService.is_member_accessible_by_user(member):
+                return service_response(403, "You do not have permission to access this member", "danger", None)
             return service_response(200, "Member retrieved successfully", "success", member)
         except Exception as e:
             # TODO: log error
             return service_response(500, "Error retrieving member", "danger", None)
+
+    @staticmethod
+    def is_member_accessible_by_user(member: Member) -> bool:
+        """
+        Checks if the current user has permission to access a member.
+
+        Args:
+            member (Member): The member to check.
+
+        Returns:
+            bool: True if the user has permission, False otherwise.
+        """
+        return member.family_id in [family.family_id for family in current_user.families]
 
     @staticmethod
     def create_member(**member_data) -> Tuple[dict, int]:
@@ -50,29 +66,6 @@ class MemberService:
             db.session.rollback()
             # TODO: log error
             return service_response(500, "Error creating member", "danger", None)
-
-    @staticmethod
-    def get_members_of_family(family_id: int) -> Tuple[dict, int]:
-        """
-        Retrieves all members of a family by family ID.
-
-        Args:
-            family_id (int): The ID of the family.
-
-        Returns:
-            Tuple[dict, int]: A tuple containing a dictionary with the response message and
-            the HTTP status code. If members are found, the dictionary will include the
-            member data with a success message. If not found, it will contain an error message.
-        """
-        try:
-            members = db.session.query(Member).filter_by(family_id=family_id).all()
-
-            if not members:
-                return service_response(200, "No members found for this family", "warning", None)
-            return service_response(200, "Members retrieved successfully", "success", members)
-        except Exception as e:
-            # TODO: log error
-            return service_response(500, "Error retrieving members", "danger", None)
 
     @staticmethod
     def get_member_siblings(member_id: int) -> Tuple[dict, int]:
@@ -209,6 +202,31 @@ class MemberService:
             db.session.rollback()
             # TODO: log error
             return service_response(500, "Error updating member", "danger", None)
+
+    @staticmethod
+    def delete_member(member_id: int) -> Tuple[dict, int]:
+        """
+        Deletes a family member.
+
+        Args:
+            member_id (int): The ID of the member to delete.
+
+        Returns:
+            Tuple[dict, int]: A tuple containing a dictionary and HTTP status code.
+        """
+        try:
+            data, status = MemberService.get_member(member_id)
+            if status != 200:
+                return data, status
+            member = data.get('data')
+
+            db.session.delete(member)
+            db.session.commit()
+            return service_response(200, "Member deleted successfully", "success", None)
+        except Exception as e:
+            db.session.rollback()
+            # TODO: log error
+            return service_response(500, "Error deleting member", "danger", None)
 
 class RelationshipService:
     """Service class for managing relationships between family members."""
