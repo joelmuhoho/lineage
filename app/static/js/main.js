@@ -53,6 +53,11 @@ function getSpouse(event) {
           );
         });
       },
+      fail: function (xhr, textStatus, errorThrown) {
+        console.log(xhr);
+        console.log(textStatus);
+        console.log(errorThrown);
+      },
     });
   }
 }
@@ -77,6 +82,19 @@ function getChildren(event) {
         const children = resp[0];
         const login = resp[1]["authenticated"];
         let addBtn = "";
+        if (children.length === 0) {
+          $(`#children_${s_id}`).append(
+            `<ul>
+              <li>
+                <details>
+                  <summary class="member" member1_id="${id}" spouse_id="${s_id}">
+                    No children Yet
+                  </summary>
+                </details>
+              </li>
+            </ul>`
+          );
+        }
         $.each(children, function (index, child) {
           let alive = "";
           if (login) {
@@ -105,8 +123,9 @@ function getChildren(event) {
           );
         });
       },
-      fail: function (xhr, textStatus, errorThrown) {
+      error: function (xhr, textStatus, errorThrown) {
         console.log(xhr);
+        console.log(xhr.status);
         console.log(textStatus);
         console.log(errorThrown);
       },
