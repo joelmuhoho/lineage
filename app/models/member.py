@@ -24,3 +24,12 @@ class Member(db.Model):
     family = db.relationship('Family', back_populates='members')
     relationships1 = db.relationship('Relationship', foreign_keys="[Relationship.member_id_1]", cascade="all, delete-orphan", back_populates='member1')
     relationships2 = db.relationship('Relationship', foreign_keys="[Relationship.member_id_2]", cascade="all, delete-orphan", back_populates='member2')
+
+    def to_dict(self)-> dict:
+        dictionary = {}
+        dictionary.update(self.__dict__)
+        if '_sa_instance_state' in dictionary:
+            del dictionary['_sa_instance_state']
+        if 'member_id' in dictionary:
+            del dictionary['member_id']
+        return dictionary
