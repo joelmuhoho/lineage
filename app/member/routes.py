@@ -1,33 +1,12 @@
 from . import bp
 from flask import render_template, redirect, url_for, flash, request, jsonify, make_response
 from flask_login import current_user, login_required
-from app.extensions import db
 from .forms import MemberForm
 from app.models import Member, Relationship
 from app.utils.constants import RelationshipConstants
 from .services import MemberService, RelationshipService
 
 
-def add_root(family_id, memberForm={}):
-    if memberForm:
-        data, status = MemberService.create_member(
-            first_name=memberForm.first_name.data,
-            last_name=memberForm.last_name.data,
-            birthdate=memberForm.birthdate.data,
-            gender=memberForm.gender.data,
-            root=True,
-            family_id=family_id,
-            alive=eval(memberForm.alive.data),
-            deathdate=memberForm.deathdate.data)
-
-        newMember, message, category = data.get('member'), data.get('message'), data.get('category')
-
-        if status != 201:
-            flash(message, category)
-            return redirect(url_for('family.create_family'))
-
-        flash(f'{newMember.first_name} {newMember.last_name} added as a root Member', 'success')
-        return redirect(url_for('family.index'))
 
 @bp.route('/member/<member_id>/spouse', methods=['GET', 'POST'])
 @login_required
@@ -176,7 +155,6 @@ def member_profile(member_id):
                            spouses=spouses,
                            children=children)
 
-
 @bp.route('/update_member/<member_id>', methods=['GET', 'POST'])
 @login_required
 def update_member(member_id):
@@ -233,11 +211,9 @@ def get_spouse():
         message, category = data.get('message'), data.get('category')
         return make_response(jsonify({category: message}), status)
     spouses = data.get('data')
-
+    print(f"spouses: {spouses} \n status: {status}")
     for spouse in spouses:
-        spouse_member = spouse.__dict__
-        del spouse_member['_sa_instance_state']
-        spousesList.append(spouse_member)
+        spousesList.append(spouse.to_dict())
     if current_user.is_authenticated:
         login = {'authenticated': True}
     else:
@@ -271,9 +247,7 @@ def get_children():
     if children:
         for child in children:
             if child.father in parent_ids and child.mother in parent_ids:
-                child_member = child.__dict__
-                del child_member['_sa_instance_state']
-                childrenList.append(child_member)
+                childrenList.append(child.to_dict())
 
     if current_user.is_authenticated:
         login = {'authenticated': True}
@@ -282,7 +256,7 @@ def get_children():
     response =  make_response(jsonify(childrenList, login), 200)
     return response
 
-# @bp.route('/member/nuclear', methods=['POST', 'GET'])
+@bp.route('/member/nuclear', methods=['POST', 'GET'])
 @login_required
 def get_nuclear():
     data = request.get_json()
@@ -290,18 +264,32 @@ def get_nuclear():
         return make_response(jsonify({"error": "Not a JSON"}), 400)
     elif "member1_id" not in data:
         return make_response(jsonify({"error": "Missing member1_id"}), 400)
+    member_id = int(data.get('member1_id'))
+    parent_ids = [member_id]
     nuclear_family = {"spouses": [], "children": []}
-    spouses = Relationship.query.filter_by(member_id_1=int(data['member1_id']), relationship_type='spouse').all()
-    children = Relationship.query.filter_by(member_id_1=int(data['member1_id']), relationship_type='child').all()
+
+    data, status = MemberService.get_member_spouses(member_id=member_id)
+    if status != 200:
+        message, category = data.get('message'), data.get('category')
+        return make_response(jsonify({category: message}), status)
+    spouses = data.get('data')
+
     for spouse in spouses:
-        spouse_member = Member.query.filter_by(member_id=spouse.member_id_2).first()
-        spouse_member = spouse_member.__dict__
-        del spouse_member['_sa_instance_state']
-        nuclear_family['spouses'].append(spouse_member)
-    for child in children:
-        child_member = Member.query.filter_by(member_id=child.member_id_2).first()
-        child_member = child_member.__dict__
-        del child_member['_sa_instance_state']
-        nuclear_family['children'].append(child_member)
+        parent_ids.append(spouse.member_id)
+        nuclear_family["spouses"].append(spouse.to_dict())
+
+
+    data, status = MemberService.get_member_children(member_id=member_id)
+    if status != 200:
+        message, category = data.get('message'), data.get('category')
+        return make_response(jsonify({category: message}), status)
+
+    children = data.get('data')
+
+    if children:
+        for child in children:
+            if child.father in parent_ids and child.mother in parent_ids:
+                nuclear_family["children"].append(child.to_dict())
+
     response =  make_response(jsonify(nuclear_family), 200)
     return response
