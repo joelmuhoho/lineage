@@ -6,11 +6,11 @@ from app.extensions import db
 from .forms import CreateFamilyForm
 from app.member.forms import MemberForm
 from config import Config
-from app.member.routes import add_root
 from app.utils import auth_s
 from app.auth.services import AuthService
 from .services import FamilyService
 from app.link.services import LinkService
+from app.member.services import MemberService
 
 
 @bp.route('/family/<family_id>')
@@ -55,7 +55,16 @@ def create_family():
             flash(message, category)
             return redirect(url_for('family.index'))
 
-        add_root(family.family_id, memberForm) # To fix: use MemberService to add root member handler errors
+        data, status = MemberService.create_member(
+            first_name=memberForm.first_name.data,
+            last_name=memberForm.last_name.data,
+            birthdate=memberForm.birthdate.data,
+            gender=memberForm.gender.data,
+            family_id=family.family_id,
+            alive=eval(memberForm.alive.data),
+            deathdate=memberForm.deathdate.data,
+            root=True
+        )
         return redirect(url_for('family.index'))
 
     return render_template('create_family.html', title='Create Family', form=form, memberForm=memberForm)
