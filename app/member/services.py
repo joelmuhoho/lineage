@@ -169,7 +169,7 @@ class MemberService:
                     spouses.append(relationship.member2)
 
             if not spouses:
-                return service_response(404, "No spouses found", "warning", None)
+                return service_response(200, "No spouses found", "warning", None)
             return service_response(200, "Spouses retrieved successfully", "success", spouses)
         except Exception as e:
             # TODO: log error
