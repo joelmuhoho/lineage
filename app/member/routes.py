@@ -211,9 +211,9 @@ def get_spouse():
         message, category = data.get('message'), data.get('category')
         return make_response(jsonify({category: message}), status)
     spouses = data.get('data')
-    print(f"spouses: {spouses} \n status: {status}")
-    for spouse in spouses:
-        spousesList.append(spouse.to_dict())
+    if spouses:
+        for spouse in spouses:
+            spousesList.append(spouse.to_dict())
     if current_user.is_authenticated:
         login = {'authenticated': True}
     else:
@@ -274,9 +274,10 @@ def get_nuclear():
         return make_response(jsonify({category: message}), status)
     spouses = data.get('data')
 
-    for spouse in spouses:
-        parent_ids.append(spouse.member_id)
-        nuclear_family["spouses"].append(spouse.to_dict())
+    if spouses:
+        for spouse in spouses:
+            parent_ids.append(spouse.member_id)
+            nuclear_family["spouses"].append(spouse.to_dict())
 
 
     data, status = MemberService.get_member_children(member_id=member_id)
