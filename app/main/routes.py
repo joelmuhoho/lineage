@@ -1,5 +1,4 @@
 from flask import render_template
-from flask_login import current_user
 from app.models.family import Family
 from . import bp
 from app.utils import auth_s
