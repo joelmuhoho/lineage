@@ -1,9 +1,10 @@
 from . import bp
 from flask import render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
-from app.extensions import db
 from .forms import EditProfileForm
-from .services import update_user, get_user
+from .services import UserService
+from app.services.email_service import sendEmailVerificationLink
+from itsdangerous import URLSafeSerializer
 
 
 @bp.route('/user/profile')
@@ -15,49 +16,63 @@ def user_profile():
 @bp.route('/edit_profile', methods=['GET', 'POST'])
 @login_required
 def edit_profile():
-    form = EditProfileForm()
-    if form.validate_on_submit():
-        code, message, category = update_user(current_user, name=form.name.data, email=form.email.data)
+    user_service = UserService()
+    edit_profile_form = EditProfileForm()
 
-        if code != 200:
+    if edit_profile_form.validate_on_submit():
+        data, status = user_service.update_user(current_user, name=edit_profile_form.name.data, email=edit_profile_form.email.data)
+
+        message, category = data.get('message'), data.get('category')
+        if status != 200:
             flash(message, category)
-            return render_template('edit_profile.html', title='Edit Profile', form=form)
+            return render_template('edit_profile.html', title='Edit Profile', form=edit_profile_form)
 
         flash(message, category)
         return redirect(url_for('user.user_profile'))
 
-    elif request.method == 'GET':
-        form.name.data = current_user.name
-        form.email.data = current_user.email
+    edit_profile_form.name.data = current_user.name
+    edit_profile_form.email.data = current_user.email
     return render_template('edit_profile.html', title='Edit Profile',
-                           form=form)
+                           form=edit_profile_form)
 
 
 @bp.route('/user/verify_email/<user_id>')
 @login_required
 def verify_email(user_id):
-    user = get_user(id=user_id)
-    if not user:
-        flash('User not found', 'error')
+    user_service = UserService()
+
+    data, status = user_service.get_user(user_id=user_id)
+    if status != 200:
+        message, category = data.get('message'), data.get('category')
+        flash(message, category)
         return redirect(url_for('user.user_profile'))
 
+    user = data.get('data')
     sendEmailVerificationLink(user)
     return redirect(url_for('user.user_profile'))
 
 @bp.route('/verify_email/<token>')
 def update_verify_email(token):
+    user_service = UserService()
+
+    auth_s = URLSafeSerializer(current_app.config["SECRET_KEY"], current_app.config["SALT"])
     data = auth_s.loads(token)
+
     user_id = data["user_id"]
 
     if user_id:
-        user = get_user(id=user_id)
-        if not user:
-            flash('User not found', 'error')
-            return redirect(url_for('auth.login'))
-
-        code, message, category = update_user(user, emailVerify=True)
-        if code != 200:
+        data, status = user_service.get_user(user_id=user_id)
+        if status != 200:
+            message, category = data.get('message'), data.get('category')
             flash(message, category)
             return redirect(url_for('auth.login'))
+
+        user = data.get('data')
+        data, status = user_service.update_user(user, emailVerify=True)
+        if status != 200:
+            message, category = data.get('message'), data.get('category')
+            flash(message, category)
+            return redirect(url_for('auth.login'))
+        message, category = data.get('message'), data.get('category')
         flash(message, category)
     return redirect(url_for('auth.login'))
