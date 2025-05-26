@@ -30,6 +30,4 @@ class Member(db.Model):
         dictionary.update(self.__dict__)
         if '_sa_instance_state' in dictionary:
             del dictionary['_sa_instance_state']
-        if 'member_id' in dictionary:
-            del dictionary['member_id']
         return dictionary
