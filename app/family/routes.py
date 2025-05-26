@@ -1,12 +1,8 @@
-from flask import render_template, redirect, url_for, flash, request, session
+from flask import render_template, redirect, url_for, flash, session
 from flask_login import current_user, login_required
 from . import bp
-from app.models import Family, Link
-from app.extensions import db
 from .forms import CreateFamilyForm
 from app.member.forms import MemberForm
-from config import Config
-from app.utils import auth_s
 from app.auth.services import AuthService
 from .services import FamilyService
 from app.link.services import LinkService
@@ -46,28 +42,29 @@ def index(family_id=0):
 @login_required
 def create_family():
     form = CreateFamilyForm()
-    memberForm = MemberForm()
+    member_form = MemberForm()
+    member_service = MemberService()
 
-    if form.validate_on_submit() and memberForm.validate_on_submit():
+    if form.validate_on_submit() and member_form.validate_on_submit():
         data, status = FamilyService.create_family(form.name.data, current_user.user_id)
         family, message, category = data.get('data'), data.get('message'), data.get('category')
         if status != 201:
             flash(message, category)
             return redirect(url_for('family.index'))
 
-        data, status = MemberService.create_member(
-            first_name=memberForm.first_name.data,
-            last_name=memberForm.last_name.data,
-            birthdate=memberForm.birthdate.data,
-            gender=memberForm.gender.data,
+        data, status = member_service.create_member(
+            first_name=member_form.first_name.data,
+            last_name=member_form.last_name.data,
+            birthdate=member_form.birthdate.data,
+            gender=member_form.gender.data,
             family_id=family.family_id,
-            alive=eval(memberForm.alive.data),
-            deathdate=memberForm.deathdate.data,
+            alive=eval(member_form.alive.data),
+            deathdate=member_form.deathdate.data,
             root=True
         )
         return redirect(url_for('family.index'))
 
-    return render_template('create_family.html', title='Create Family', form=form, memberForm=memberForm)
+    return render_template('create_family.html', title='Create Family', form=form, memberForm=member_form)
 
 @bp.route('/family/delete/<family_id>')
 @login_required
