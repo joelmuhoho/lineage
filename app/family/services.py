@@ -1,6 +1,5 @@
 from app.models import Family
 from app.extensions import db
-from flask import session
 from app.services.service_base import service_response
 from typing import Tuple
 
