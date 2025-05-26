@@ -1,7 +1,7 @@
 from app.models.user import User
 from app.extensions import db
 from config import Config
-from app.user.services import create_user, save_user, get_user
+from app.user.services import UserService
 from typing import Union, Tuple, Optional
 from flask_login import login_user, logout_user, current_user
 from flask import session
@@ -10,7 +10,10 @@ class AuthService:
     @staticmethod
     def authenticate(email: str, password: str) -> Union[User, Tuple[int, str, str]]:
         """Authenticate a user."""
-        user = get_user(email=email)
+        user_service = UserService()
+
+        data, status = user_service.get_user(email=email)
+        user = data.get('data')
         if user and user.check_password(password):
             login_user(user)
 
