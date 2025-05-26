@@ -5,33 +5,37 @@ from .forms import LoginForm, RegisterForm, ResetPasswordRequestForm, ResetPassw
 from .services import AuthService
 from config import Config
 from app.models import User
-from app.user.services import create_user, save_user, get_user, update_user, check_user_exists
+from app.user.services import UserService
 from app.extensions import db
 from app.services.email_service import send_password_reset_email
 
 @bp.route('/register', methods=['GET','POST'])
 def register():
+    user_service = UserService()
+
     if current_user.is_authenticated:
          return redirect(url_for('main.index'))
 
     form = RegisterForm()
     if form.validate_on_submit():
-        user = create_user(name=form.name.data, email=form.email.data, password=form.password.data)
-        code, message, category = save_user(user)
+        data, status = user_service.create_user(name=form.name.data, email=form.email.data, password=form.password.data)
         # sendEmailVerificationLink(user)
-        if code == 201:
+        if status == 201:
+            message, category = data.get('message'), data.get('category')
             flash(message, category)
             return redirect(url_for('auth.login'))
     return render_template('auth/register.html', title='Register', form=form)
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
+    user_service = UserService()
+
     if current_user.is_authenticated:
         return redirect(url_for('family.index'))
 
     form = LoginForm()
     if form.validate_on_submit():
-        user_exists = check_user_exists(form.email.data)
+        user_exists = user_service.check_user_exists(form.email.data)
         if not user_exists:
             flash('Invalid username or password', 'danger')
             return redirect(url_for('auth.login'))
@@ -52,6 +56,8 @@ def login():
 @bp.route('/guest')
 def guest():
     """Login as a guest user."""
+    user_service = UserService()
+
     if current_user.is_authenticated:
         return redirect(url_for('family.index'))
 
@@ -60,11 +66,11 @@ def guest():
         flash("Guest name, email and password are required. Contact admin", 'danger')
         return redirect(url_for('auth.login'))
 
-    guest_user_exists = check_user_exists(guest_email)
+    guest_user_exists = user_service.check_user_exists(guest_email)
     if not guest_user_exists:
-        guest_user = create_user(name=guest_name, email=guest_email, password=guest_password)
-        code, message, category = save_user(guest_user)
-        if code != 201:
+        data, status = user_service.create_user(name=guest_name, email=guest_email, password=guest_password)
+        if status != 201:
+            message, category = data.get('message'), data.get('category')
             flash(message, category)
             return redirect(url_for('auth.login'))
 
@@ -83,12 +89,15 @@ def logout():
 
 @bp.route('/reset_password_request', methods=['POST', 'GET'])
 def reset_password_request():
+    user_service = UserService()
+
     if current_user.is_authenticated:
         return redirect(url_for('family.index'))
 
     form = ResetPasswordRequestForm()
     if form.validate_on_submit():
-        user = get_user(email=form.email.data)
+        data, status = user_service.get_user(email=form.email.data)
+        user = data.get('data')
         if user:
             send_password_reset_email(user)
         flash('Check your email for the instructions to reset your password', 'info')
@@ -99,6 +108,8 @@ def reset_password_request():
 
 @bp.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
+    user_service = UserService()
+
     if current_user.is_authenticated:
         return redirect(url_for('family.index'))
 
@@ -109,10 +120,13 @@ def reset_password(token):
 
     form = ResetPasswordForm()
     if form.validate_on_submit():
-        code, message, category = update_user(user, password=form.password.data)
-        if code != 200:
+        data, status = user_service.update_user(user, password=form.password.data)
+        if status != 200:
+            message, category = data.get('message'), data.get('category')
             flash(message, category)
             return redirect(url_for('auth.reset_password', token=token))
+
+        message, category = data.get('message'), data.get('category')
         flash(message, category)
         return redirect(url_for('auth.login'))
     return render_template('auth/reset_password.html', title="New password", form=form)
