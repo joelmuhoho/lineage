@@ -1,12 +1,10 @@
 from flask import render_template, redirect, url_for, flash, request, current_app as app
-from flask_login import login_user, logout_user, current_user
+from flask_login import logout_user, current_user
 from . import bp
 from .forms import LoginForm, RegisterForm, ResetPasswordRequestForm, ResetPasswordForm
 from .services import AuthService
-from config import Config
 from app.models import User
 from app.user.services import UserService
-from app.extensions import db
 from app.services.email_service import send_password_reset_email
 
 @bp.route('/register', methods=['GET','POST'])
@@ -28,58 +26,43 @@ def register():
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
-    user_service = UserService()
-
     if current_user.is_authenticated:
         return redirect(url_for('family.index'))
 
     form = LoginForm()
     if form.validate_on_submit():
-        user_exists = user_service.check_user_exists(form.email.data)
-        if not user_exists:
-            flash('Invalid username or password', 'danger')
+        authenticate_service = AuthService()
+
+        data, status = authenticate_service.authenticate(email=form.email.data, password=form.password.data)
+        if status != 200:
+            message, category = data.get('message'), data.get('category')
+            flash(message, category)
             return redirect(url_for('auth.login'))
 
-        user = AuthService.authenticate(email=form.email.data, password=form.password.data)
-        if isinstance(user, tuple): # if user is a tuple, it means they exist but password is wrong
-            code, message, category = user
-            if code == 403:
-                flash(message, category)
-                return redirect(url_for('auth.login'))
-
         next_page = request.args.get('next')
-        if not next_page:# if there is a query string in the url requires login 1st then go to the next_page
+        if not next_page:# if there is a query string in the url requires login first, then go to the next_page
             next_page = url_for('family.index')
         return redirect(next_page)
     return render_template('auth/login.html', title='Login', form=form)
 
 @bp.route('/guest')
 def guest():
-    """Login as a guest user."""
-    user_service = UserService()
-
     if current_user.is_authenticated:
         return redirect(url_for('family.index'))
 
-    guest_name, guest_email, guest_password = AuthService.get_guest_info()
+    authenticate_service = AuthService()
+
+    guest_name, guest_email, guest_password = authenticate_service.get_guest_info()
     if not guest_name or not guest_email or not guest_password:
         flash("Guest name, email and password are required. Contact admin", 'danger')
         return redirect(url_for('auth.login'))
 
-    guest_user_exists = user_service.check_user_exists(guest_email)
-    if not guest_user_exists:
-        data, status = user_service.create_user(name=guest_name, email=guest_email, password=guest_password)
-        if status != 201:
-            message, category = data.get('message'), data.get('category')
-            flash(message, category)
-            return redirect(url_for('auth.login'))
+    data, status = authenticate_service.authenticate(email=guest_email, password=guest_password)
+    if status != 200:
+        message, category = data.get('message'), data.get('category')
+        flash(message, category)
+        return redirect(url_for('auth.login'))
 
-    user = AuthService.authenticate(email=guest_email, password=guest_password)
-    if isinstance(user, tuple): # if user is a tuple, it means authentication failed
-        code, message, category = user
-        if code == 403:
-            flash(message, category)
-            return redirect(url_for('auth.login'))
     return redirect(url_for('family.index'))
 
 @bp.route('/logout')
@@ -89,13 +72,13 @@ def logout():
 
 @bp.route('/reset_password_request', methods=['POST', 'GET'])
 def reset_password_request():
-    user_service = UserService()
-
     if current_user.is_authenticated:
         return redirect(url_for('family.index'))
 
     form = ResetPasswordRequestForm()
     if form.validate_on_submit():
+        user_service = UserService()
+
         data, status = user_service.get_user(email=form.email.data)
         user = data.get('data')
         if user:
@@ -108,8 +91,6 @@ def reset_password_request():
 
 @bp.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
-    user_service = UserService()
-
     if current_user.is_authenticated:
         return redirect(url_for('family.index'))
 
@@ -120,6 +101,8 @@ def reset_password(token):
 
     form = ResetPasswordForm()
     if form.validate_on_submit():
+        user_service = UserService()
+
         data, status = user_service.update_user(user, password=form.password.data)
         if status != 200:
             message, category = data.get('message'), data.get('category')
