@@ -1,43 +1,27 @@
 from app.models.user import User
-from app.extensions import db
 from config import Config
 from app.user.services import UserService
 from typing import Union, Tuple, Optional
-from flask_login import login_user, logout_user, current_user
+from flask_login import login_user, current_user
 from flask import session
+from app.services.service_base import service_response
 
 class AuthService:
+
     @staticmethod
-    def authenticate(email: str, password: str) -> Union[User, Tuple[int, str, str]]:
-        """Authenticate a user."""
+    def authenticate(email: str, password: str) -> Union[User, Tuple[dict, int]]:
         user_service = UserService()
 
         data, status = user_service.get_user(email=email)
         user = data.get('data')
         if user and user.check_password(password):
             login_user(user)
-
             AuthService.set_current_family_id()
-            return user
-        return 403, 'Invalid username or password', 'danger'
-
-
-    @staticmethod
-    def register(name, email, password):
-        """Register a new user."""
-        if db.session.query(User).filter_by(email=email).first():
-            return (400, ['Email already registered', 'danger'])
-
-        user = create_user(name=name, email=email, password=password)
-        if not user:
-            return (500, ['Error creating user', 'danger'])
-        status, message = save_user(user)
-        if status != 201:
-            return (status, message)
-        return (201, ['Registration successful! Please log in.', 'success'])
+            return service_response(200, 'Login successful', 'success', user)
+        return service_response(403, 'Invalid username or password', 'danger', None)
 
     @staticmethod
-    def get_guest_info():
+    def get_guest_info()-> Tuple[str, str, str]:
         """Get guest user information."""
         return Config.GUEST_NAME,Config.GUEST_EMAIL,Config.GUEST_PASSWORD
 
