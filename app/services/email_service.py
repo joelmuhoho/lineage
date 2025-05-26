@@ -2,6 +2,9 @@ from flask import current_app as app, render_template
 from flask_mail import Message
 from threading import Thread
 from app.extensions import mail
+from itsdangerous import URLSafeSerializer
+
+
 
 def send_async_email(app, msg):
     with app.app_context():
@@ -28,6 +31,7 @@ def sendEmailVerificationLink(user):
         # get url
         url_root = request.url_root
         # create token to send to user via email for verification
+        auth_s = URLSafeSerializer(app.config["SECRET_KEY"], app.config["SALT"])
         token = auth_s.dumps({"user_id": user.user_id})
         send_email('[Lineage] Verify Email',
                sender=app.config['ADMINS'],
