@@ -1,11 +1,10 @@
 from flask import Flask
-from config import config_dict
+from config import DevelopmentConfig
 
-def create_app(config_name='default'):
+def create_app(config_class=DevelopmentConfig):
     app = Flask(__name__)
 
     # Load configuration
-    config_class = config_dict.get(config_name)
     app.config.from_object(config_class)
 
     # Initialize extensions

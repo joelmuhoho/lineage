@@ -32,15 +32,15 @@ class Config:
     GUEST_PASSWORD = os.getenv('GUEST_PASSWORD')
 
     SALT = os.getenv('SALT', os.urandom(16).hex())
-    SECRET_KEY = os.getenv('SECRET_KEY')
 
 class DevelopmentConfig(Config):
     DEBUG = True
     SQLALCHEMY_ECHO = True  # Log SQL queries
 
-class TestingConfig(Config):
+class TestConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
     WTF_CSRF_ENABLED = False
     SECRET_KEY = "ewek;5584&^2dsjkdfskj5689dsjkn"
 
@@ -48,11 +48,3 @@ class ProductionConfig(Config):
     FLASK_ENV = 'production'
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = os.getenv('LINEAGE_DATABASE_URI')
-
-# Config selector
-config_dict = {
-    'development': DevelopmentConfig,
-    'testing': TestingConfig,
-    'production': ProductionConfig,
-    'default': DevelopmentConfig
-}
