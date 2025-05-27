@@ -3,7 +3,7 @@ from .user import User
 from .member import Member
 from .event import  Event
 from .link import  Link
-from typing import List
+from typing import List, Optional
 from sqlalchemy.orm import Mapped
 
 class Family(db.Model):
@@ -31,7 +31,7 @@ class Family(db.Model):
     name: Mapped[str] = db.Column(db.String(MAX_STRING_LENGTH), nullable=False)
 
     # Foreign key
-    user_id: Mapped[int] = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True)
+    user_id: Mapped[Optional[int]] = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True)
 
     # Relationships
     users: Mapped[List[User]] = db.relationship('User', back_populates='families')
