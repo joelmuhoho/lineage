@@ -1,3 +1,5 @@
+from enum import Enum
+
 class NameConstants:
     NamePlaceholder = 'Your Name'
     NameRequired = 'Name is required'
@@ -28,19 +30,24 @@ class MemberConstants:
     AliveRequired = 'Alive option is required'
 
 class GenderConstants:
-    Male = 'Male'
-    Female = 'Female'
-    Others = 'Others'
-    ALL=[Male, Female, Others]
     GenderPlaceholder = 'Gender'
     GenderRequired = 'Gender is required'
 
+class Gender(Enum):
+    MALE = "Male"
+    FEMALE = "Female"
+    OTHER = "Other"
+
 class RelationshipConstants:
-    Spouse = 'spouse'
-    Child = 'child'
     RelationshipPlaceholder = 'Relationship'
     RelationshipRequired = 'Relationship is required'
 
+class RelationType(Enum):
+    """Enumeration of possible relationship types between family members."""
+    SPOUSE = "spouse"
+    SIBLING = "sibling"
+    PARENT = "parent"
+    CHILD = "child"
 class EventConstants:
     DatePlaceholder = 'Event Date'
     DateRequired = 'Event Date is required'
