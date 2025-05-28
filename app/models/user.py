@@ -1,48 +1,123 @@
-from . import db
-from werkzeug.security import generate_password_hash, check_password_hash
+from typing import Optional, Dict, Any, List
 from flask_login import UserMixin
-from time import time
+from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
+from time import time
+from sqlalchemy.orm import Mapped
+from . import db, Family
+
 
 class User(db.Model, UserMixin):
     """Class representing a user in the application."""
-    __tablename__ = 'users'
+    
+    # constants
+    NAME_MAX_LENGTH: int = 50
+    EMAIL_MAX_LENGTH: int = 50
+    PASSWORD_MAX_LENGTH: int = 2500
+    PASSWORD_HASH_ALGORITHM: str = 'HS256'
+    TOKEN_EXPIRATION_DEFAULT: int = 600  # 10 minutes in seconds
 
-    user_id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), nullable=False)
-    email = db.Column(db.String(50), unique=True, nullable=False)
-    password = db.Column(db.String(2500), nullable=False)
-    emailVerify = db.Column(db.Boolean, default=False)
-    families = db.relationship('Family', back_populates='users')
+    # Configuration
+    __tablename__: str = 'users'
+    
+    user_id:Mapped[int] = db.Column(db.Integer, primary_key=True)
+    name:Mapped[str] = db.Column(db.String(NAME_MAX_LENGTH), nullable=False)
+    email:Mapped[str] = db.Column(db.String(EMAIL_MAX_LENGTH), unique=True, nullable=False)
+    password:Mapped[str] = db.Column(db.String(PASSWORD_MAX_LENGTH), nullable=False)
+    emailVerify:Mapped[bool] = db.Column(db.Boolean, default=False)
 
-    def __init__(self, name, email, password):
-        """Initialize a User instance with name, email, and password."""
+    # Relationship
+    families:Mapped[List[Family]] = db.relationship('Family', back_populates='users')
+
+    def __init__(self, name: str, email: str, password: str) -> None:
+        """Initialize a User instance.
+        
+        Args:
+            name: The user's full name
+            email: The user's email address
+            password: The user's plain text password (will be hashed)
+        """
         self.name = name
         self.email = email
         self.set_password(password)
 
-    def set_password(self, user_password):
-        """change password from string to hash value to store to database"""
-        self.password = generate_password_hash(user_password)
+    def set_password(self, password: str) -> None:
+        """Hash and set the user's password.
+        
+        Args:
+            password: Plain text password to be hashed
+        """
+        self.password = generate_password_hash(password)
 
-    def check_password(self, user_password):
-        """check the passed string if matches the hash value stored in the database"""
-        return check_password_hash(self.password, user_password)
+    def check_password(self, password: str) -> bool:
+        """Verify if the provided password matches the stored hash.
+        
+        Args:
+            password: Plain text password to verify
+            
+        Returns:
+            bool: True if password matches, False otherwise
+        """
+        return check_password_hash(self.password, password)
 
-    def get_id(self):
-           """returns an id of a user"""
-           return (self.user_id)
+    def get_id(self) -> str:
+        """Get the user's ID for Flask-Login.
+        
+        Returns:
+            str: The user's ID as a string (required by Flask-Login)
+        """
+        return str(self.user_id)
 
-    def get_reset_password_token(self, secret, expires_in=600):
-        return jwt.encode(
-            {'reset_password': self.user_id, 'exp': time() + expires_in},
-            secret, algorithm='HS256')
+    def _create_reset_token_payload(self, expires_in: int) -> Dict[str, Any]:
+        """Create the payload for a password-reset token.
+        
+        Args:
+            expires_in: Token expiration time in seconds
+            
+        Returns:
+            Dict[str, Any]: Token payload with user ID and expiration
+        """
+        return {
+            'reset_password': self.user_id,
+            'exp': time() + expires_in
+        }
+
+    def get_reset_password_token(self, secret: str, expires_in: int = TOKEN_EXPIRATION_DEFAULT) -> str:
+        """Generate a password-reset token.
+        
+        Args:
+            secret: Secret key for token encryption
+            expires_in: Token expiration time in seconds, defaults to TOKEN_EXPIRATION_DEFAULT
+            
+        Returns:
+            str: JWT-encoded reset token
+        """
+        payload = self._create_reset_token_payload(expires_in)
+        return jwt.encode(payload, secret, algorithm=self.PASSWORD_HASH_ALGORITHM)
 
     @staticmethod
-    def verify_reset_password_token(secret, token):
+    def verify_reset_password_token(secret: str, token: str) -> Optional['User']:
+        """Verify and decode a password reset token.
+        
+        Args:
+            secret: Secret key for token verification
+            token: JWT token to verify
+            
+        Returns:
+            Optional[User]: User instance if token is valid, None otherwise
+            
+        Note:
+            This method handles jwt.InvalidTokenError and KeyError exceptions
+            and returns None in case of any validation errors.
+        """
         try:
-            id = jwt.decode(token, secret,
-                            algorithms=['HS256'])['reset_password']
-        except:
-            return
-        return db.session.get(User, id)
+            payload = jwt.decode(
+                token, 
+                secret, 
+                algorithms=[User.PASSWORD_HASH_ALGORITHM]
+            )
+            user_id = payload['reset_password']
+            user = db.session.get(User, user_id)
+            return user
+        except (jwt.InvalidTokenError, KeyError):
+            return None
