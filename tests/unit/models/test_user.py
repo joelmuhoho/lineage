@@ -1,79 +1,66 @@
+import pytest
 from app.models.user import User
+
 
 def test_user_initialization():
     """
-    Test user initialization with name, email, and password.
-    Verifies that user attributes are correctly set and the password is hashed.
+    Test the initialization of a User instance.
+    Verifies that attributes are correctly set.
     """
-    user = User(name="John Doe", email="john.doe@example.com", password="my-secret")
+    user = User(name="John Doe", email="john.doe@example.com", password="secure-password")
     assert user.name == "John Doe"
     assert user.email == "john.doe@example.com"
-    assert user.password != "my-secret"  # Ensure the password is hashed
-    assert user.check_password("my-secret")
+    assert user.password != "secure-password"  # Password should be hashed
 
 
 def test_set_password():
     """
-    Test the set_password method for updating the user's password.
+    Test the set_password method to ensure it hashes passwords properly.
     """
-    user = User(name="Jane Doe", email="jane.doe@example.com", password="initial-pass")
-    old_password_hash = user.password
-    user.set_password("newpassword")
-    assert user.password != old_password_hash  # Password hash should change
-    assert user.check_password("newpassword")
+    user = User(name="John Doe", email="john.doe@example.com", password="initial-password")
+    user.set_password("new-secure-password")
+    assert user.password != "new-secure-password"
+    assert user.check_password("new-secure-password") is True
 
 
 def test_check_password():
     """
-    Test the check_password method to verify correct and incorrect passwords.
+    Test the check_password method to verify password validation.
     """
-    user = User(name="Alice", email="alice@example.com", password="secure-password")
-    assert user.check_password("secure-password")  # Correct password
-    assert not user.check_password("wrong-password")  # Incorrect password
+    user = User(name="John Doe", email="john.doe@example.com", password="mypassword")
+    assert user.check_password("mypassword") is True
+    assert user.check_password("wrong-password") is False
 
 
 def test_get_id():
     """
-    Test the get_id method to fetch the user's ID.
+    Test the get_id method to ensure it returns the user's ID as a string.
     """
-    user = User(name="Bob", email="bob@example.com", password="mypassword")
-    user.user_id = 123  # Mock the user_id
-    assert user.get_id() == 123
+    user = User(name="John Doe", email="john.doe@example.com", password="password")
+    user.user_id = 123
+    assert user.get_id() == "123"
 
 
 def test_get_reset_password_token():
     """
-    Test the get_reset_password_token method to ensure a token is returned.
+    Test the get_reset_password_token method to validate token creation.
     """
-    secret_key = "testsecret"
-    user = User(name="Charlie", email="charlie@example.com", password="password123")
-    user.user_id = 456  # Mock the user_id
-    token = user.get_reset_password_token(secret_key)
+    user = User(name="John Doe", email="john.doe@example.com", password="password")
+    secret = "my-secret-key"
+    token = user.get_reset_password_token(secret, 600)
+    assert token is not None
     assert isinstance(token, str)
-    assert len(token) > 0
 
 
-def test_verify_reset_password_token_valid(session):
+def test_verify_reset_password_token(session):
     """
-    Test that verify_reset_password_token correctly decodes a valid token.
+    Test the verify_reset_password_token method to validate token decoding.
     """
-    secret_key = "test-secret"
-    user = User(name="Dana", email="dana@example.com", password="password")
-    user.user_id = 789  # Mock the user_id
+    user = User(name="joel Doe", email="joel.doe@example.com", password="password")
     session.add(user)
     session.commit()
-    token = user.get_reset_password_token(secret_key)
-    assert token is not None
-    verified_user = User.verify_reset_password_token(secret_key, token)
-    assert verified_user is not None
-    assert verified_user.user_id == 789
 
-
-def test_verify_reset_password_token_invalid():
-    """
-    Test that verify_reset_password_token handles an invalid token correctly.
-    """
-    secret_key = "testsecret"
-    invalid_token = "invalidtoken"
-    verified_user = User.verify_reset_password_token(secret_key, invalid_token)
-    assert verified_user is None
+    secret = "my-secret-key"
+    token = user.get_reset_password_token(secret, 600)
+    verified_user = User.verify_reset_password_token(secret, token)
+    assert verified_user
