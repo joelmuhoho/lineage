@@ -1,5 +1,8 @@
+from datetime import date
+import pytest
 from app.models.member import Member
-from app.models.relationship import Relationship
+from app.models.relationship import Relationship, RelationType
+
 
 def test_relationship_initialization():
     """
@@ -7,40 +10,60 @@ def test_relationship_initialization():
     Verifies that attributes are correctly set.
     """
     relationship = Relationship(
-        relationship_id=1,
-        relationship_type="Sibling",
+        relationship_type=RelationType.SPOUSE,
         member_id_1=1,
-        member_id_2=2,
+        member_id_2=2
     )
-    assert relationship.relationship_id == 1
-    assert relationship.relationship_type == "Sibling"
+
+    assert relationship.relationship_type == "spouse"
     assert relationship.member_id_1 == 1
     assert relationship.member_id_2 == 2
 
 
-def test_relationship_with_members():
+def test_relationship_self_relationship_validation():
     """
-    Test relationships between members.
-    Ensure the Relationship instance links correctly to Member instances.
+    Test that a member cannot have a relationship with themselves.
     """
-    member1 = Member(
-        member_id=1,
-        first_name="John",
-        last_name="Doe",
-        family_id=1,
-    )
-    member2 = Member(
-        member_id=2,
-        first_name="Jane",
-        last_name="Doe",
-        family_id=1,
-    )
     relationship = Relationship(
-        relationship_id=1,
-        relationship_type="Sibling",
-        member1=member1,
-        member2=member2,
+        relationship_type=RelationType.SIBLING,
+        member_id_1=1,
+        member_id_2=1
     )
-    assert relationship.member1.first_name == "John"
-    assert relationship.member2.first_name == "Jane"
-    assert relationship.relationship_type == "Sibling"
+
+    with pytest.raises(ValueError, match="A member cannot have a relationship with themselves"):
+        relationship.validate()
+
+
+def test_relationship_parent_child_age_validation(session):
+    """
+    Test that the parent must be older than the child.
+    """
+    parent = Member(first_name="John", last_name="Doe", family_id=1, birthdate=date(1980, 1, 1))
+    child = Member(first_name="Jane", last_name="Doe", family_id=1, birthdate=date(2005, 1, 1))
+    session.add_all([parent, child])
+    session.commit()
+
+    relationship = Relationship(
+        relationship_type=RelationType.PARENT,
+        member_id_1=parent.member_id,
+        member_id_2=child.member_id
+    )
+    relationship.validate()  # Should not raise any exceptions
+
+    child.birthdate = date(1975, 1, 1)  # Change the child's birthdate to an earlier date
+    session.commit()
+
+    with pytest.raises(ValueError, match="Parent must be older than child"):
+        relationship.validate()
+
+
+def test_invalid_relationship_type():
+    """
+    Test that initializing a relationship with an invalid relationship_type raises a TypeError.
+    """
+    with pytest.raises(TypeError, match="relationship_type must be a RelationType enum"):
+        Relationship(
+            relationship_type="invalid_type",
+            member_id_1=1,
+            member_id_2=2
+        )
