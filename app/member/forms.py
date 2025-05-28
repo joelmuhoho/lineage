@@ -1,13 +1,14 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, SelectField, DateField, RadioField, validators
 from wtforms.validators import DataRequired
-from app.utils.constants import MemberConstants, GenderConstants, RelationshipConstants
+from app.utils.constants import MemberConstants, GenderConstants, RelationshipConstants, Gender, RelationType
 
 class MemberForm(FlaskForm):
     """form to add a family member"""
+    all_gender = [Gender.MALE, Gender.FEMALE, Gender.OTHER]
     first_name = StringField('First Name', validators=[DataRequired(message=MemberConstants.FirstNameRequired)], render_kw={"placeholder": MemberConstants.FirstNamePlaceholder})
     last_name = StringField('Last Name', validators=[DataRequired(message=MemberConstants.LastNameRequired)], render_kw={"placeholder": MemberConstants.LastNamePlaceholder})
-    gender = SelectField('Gender', choices=[(gender, gender) for gender in GenderConstants.ALL], validators=[DataRequired(message=GenderConstants.GenderRequired)], render_kw={"placeholder":GenderConstants.GenderPlaceholder})
+    gender = SelectField('Gender', choices=[(gender.value, gender.value) for gender in all_gender], validators=[DataRequired(message=GenderConstants.GenderRequired)], render_kw={"placeholder":GenderConstants.GenderPlaceholder})
     birthdate = DateField('Birth Date', validators=[DataRequired(message=MemberConstants.BirthDateRequired)], render_kw={"placeholder": MemberConstants.BirthDatePlaceholder})
     alive = RadioField('Alive', choices=[(True, 'Yes'), (False, 'No')], validators=[DataRequired(message=MemberConstants.AliveRequired)])
     deathdate = DateField('Death Date', validators=(validators.Optional(),))
@@ -34,7 +35,7 @@ class MemberForm(FlaskForm):
         if add_relative_mode:
             # Add appropriate choices based on the mode (Spouse or Child)
             self.relationship.validators=[DataRequired(message=RelationshipConstants.RelationshipRequired)]
-            if add_relative_mode == RelationshipConstants.Spouse:
-                self.relationship.choices = [(RelationshipConstants.Spouse, RelationshipConstants.Spouse)]
-            elif add_relative_mode == RelationshipConstants.Child:
-                self.relationship.choices = [(RelationshipConstants.Child, RelationshipConstants.Child)]
+            if add_relative_mode == RelationType.SPOUSE:
+                self.relationship.choices = [(RelationType.SPOUSE.value, RelationType.SPOUSE.value)]
+            elif add_relative_mode == RelationType.CHILD:
+                self.relationship.choices = [(RelationType.CHILD.value, RelationType.CHILD.value)]

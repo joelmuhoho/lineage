@@ -2,7 +2,7 @@ from . import bp
 from flask import render_template, redirect, url_for, flash, request, jsonify, make_response
 from flask_login import current_user, login_required
 from .forms import MemberForm
-from app.utils.constants import RelationshipConstants
+from app.utils.constants import RelationshipConstants, RelationType
 from .services import MemberService, RelationshipService
 from typing import  Dict, Tuple, Union, List
 from app.models import Member
@@ -128,7 +128,7 @@ def create_relationship(member_id: int, new_member_id: int, relationship_type: s
 @bp.route('/member/<member_id>/spouse', methods=['GET', 'POST'])
 @login_required
 def add_spouse(member_id):
-    form = MemberForm(add_relative_mode=RelationshipConstants.Spouse)
+    form = MemberForm(add_relative_mode=RelationType.SPOUSE)
     member_service = MemberService()
 
     member1 = retrieve_member(member_id)
@@ -174,7 +174,7 @@ def add_spouse(member_id):
 @bp.route('/member/<member_id>/<spouse_id>/child', methods=['GET', 'POST'])
 @login_required
 def add_child(member_id, spouse_id):
-    form = MemberForm(add_relative_mode=RelationshipConstants.Child)
+    form = MemberForm(add_relative_mode=RelationType.CHILD)
     father: str
     mother: str
     member_service: MemberService = MemberService()
