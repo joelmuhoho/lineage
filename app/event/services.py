@@ -10,7 +10,7 @@ class EventService:
     def __init__(self, db_session=None):
         self.db = db_session or db.session
 
-    def create_event(self, event_date: str, event_name: str, family_id: int, event_location: Union[str, None], event_description: Union[str, None]) -> Tuple[dict, int]:
+    def create_event(self, event_date: datetime, event_name: str, family_id: int, location: Union[str, None], description: Union[str, None]) -> Tuple[dict, int]:
         """
         creates a new event instance and saves it to the database.
 
@@ -18,8 +18,8 @@ class EventService:
             event_date (str): The date of the event.
             event_name (str): The name of the event.
             family_id (int): The ID of the family that the event belongs to.
-            event_location (Union[str, None]): The location of the event.
-            event_description (Union[str, None]): A description of the event.
+            location (Union[str, None]): The location of the event.
+            description (Union[str, None]): A description of the event.
 
         Returns:
             Tuple[dict, int]: A service response containing the event instance and a status code.
@@ -28,8 +28,8 @@ class EventService:
             event = Event(
             event_date=event_date,
             event_name=event_name,
-            event_location=event_location,
-            event_description=event_description,
+            location=location,
+            description=description,
             family_id=family_id)
 
             self.db.add(event)
@@ -90,7 +90,7 @@ class EventService:
             Tuple[dict, int]: A service response containing an object with a message, category, and data(event|None), and a status code.
         """
         try:
-            event = self.db.query(Event).get(event_id)
+            event = self.db.get(Event, event_id)
             if not event:
                 return service_response(404, "Event not found", "warning", None)
             return service_response(200, "Event retrieved successfully", "success", event)
@@ -139,7 +139,7 @@ class EventService:
             self.db.rollback()
             return service_response(500, f"Error deleting event {str(e)}", "danger", None)
 
-    def update_event(self, event: Event,event_date: str, event_name: str, event_location: str, event_description: str) -> Tuple[dict, int]:
+    def update_event(self, event: Event, event_date: datetime, event_name: str, location: str, description: str) -> Tuple[dict, int]:
         """
         updates an event in the database.
 
@@ -147,8 +147,8 @@ class EventService:
             event (Event): The event to update.
             event_date (str): The date of the event.
             event_name (str): The name of the event.
-            event_location (str): The location of the event.
-            event_description (str): A description of the event.
+            location (str): The location of the event.
+            description (str): A description of the event.
 
         Returns:
             Tuple[dict, int]: A service response containing the updated event instance and a status code.
@@ -156,8 +156,8 @@ class EventService:
         try:
             event.event_date = event_date
             event.event_name = event_name
-            event.event_location = event_location
-            event.event_description = event_description
+            event.location = location
+            event.description = description
 
             self.db.commit()
             return service_response(200, "Event updated successfully", "success", event)
