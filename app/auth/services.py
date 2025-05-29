@@ -26,7 +26,7 @@ class AuthService:
         return Config.GUEST_NAME,Config.GUEST_EMAIL,Config.GUEST_PASSWORD
 
     @staticmethod
-    def set_current_family_id(current_family_id: Optional[int] = None) -> None:
+    def set_current_family_id(current_family_id: Optional[int] = None):
         """Set the current family ID for the current user."""
         if current_user.is_authenticated:
             families_length = len(current_user.families)
@@ -34,3 +34,5 @@ class AuthService:
                 session['current_family_id'] = current_user.families[0].family_id
             elif families_length > 1 and current_family_id:
                 session['current_family_id'] = current_family_id
+            return session
+        return None
