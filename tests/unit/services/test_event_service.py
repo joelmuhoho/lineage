@@ -36,17 +36,16 @@ def test_user_and_family(session):
 
 def test_create_event(test_user_and_family):
     """
-    Tests the `create_event` method of the EventService class by creating a new event
-    and verifying the returned response status, message, and event details.
+    Tests the creation of an event using the EventService class and verifies
+    the response and status code for successful execution.
 
     Args:
-        test_user_and_family (Tuple[User, Family]): A tuple containing an instance of
-        a test user and their associated family.
+        test_user_and_family (tuple): A tuple containing a mock user and their
+            associated family for the test.
 
     Raises:
-        AssertionError: If the response status is not 201, the response message does
-        not match the expected value, or if the returned event details do not match
-        the input values.
+        AssertionError: If the response does not indicate success or the event
+            data does not match the input parameters.
     """
     user, family = test_user_and_family
     service = EventService()
@@ -63,6 +62,41 @@ def test_create_event(test_user_and_family):
     assert status == 201
     assert response["message"] == "Event created successfully"
     assert response["data"].event_name == "Test Event"
+
+def test_create_event_error(test_user_and_family):
+    """
+    Tests the behavior of the `create_event` method in the `EventService` class
+    when invalid input parameters are provided. Specifically, it checks how the
+    method handles an attempt to create an event with a `None` event date.
+
+    Parameters
+    ----------
+    test_user_and_family : tuple
+        A tuple containing a user and a corresponding family instance, with
+        a valid family_id used to test the event creation.
+
+    Raises
+    ------
+    AssertionError
+        If the status code returned by `create_event` is not 500, or if the
+        response does not match the expected output for the error case.
+
+    """
+    user, family = test_user_and_family
+    service = EventService()
+
+    response, status = service.create_event(
+        event_date=None,
+        event_name="Test Event",
+        family_id=family.family_id,
+        location="Test Location",
+        description="Test Description"
+    )
+
+    assert status == 500
+    assert response["message"] == "Error creating event"
+    assert response["category"] == "danger"
+    assert response["data"] is None
 
 def test_get_upcoming_events(test_user_and_family):
     """
@@ -93,6 +127,57 @@ def test_get_upcoming_events(test_user_and_family):
     assert response["message"] == "Upcoming events retrieved successfully"
     assert any(event.event_name == "Future Event" for event in response["data"])
 
+def test_get_upcoming_events_not_found(test_user_and_family):
+    """
+    Tests the behavior of get_upcoming_events when no events are found.
+    Verifies that appropriate 404 status and warning message are returned.
+
+    Parameters:
+        test_user_and_family: tuple
+        A tuple containing test user and family instances.
+
+    Raises:
+        AssertionError
+        If the status code is not 404 or if the response message is incorrect.
+    """
+    user, family = test_user_and_family
+    service = EventService()
+
+    response, status = service.get_upcoming_events(family.family_id)
+    assert status == 404
+    assert response["message"] == "No upcoming events found"
+    assert response["category"] == "warning"
+    assert response["data"] is None
+
+def test_get_upcoming_events_error(test_user_and_family, monkeypatch):
+    """
+    Tests error handling in get_upcoming_events when a database query fails.
+    Verifies that appropriate 500 status and error message is returned.
+
+    Parameters:
+        test_user_and_family: tuple
+            A tuple containing test user and family instances.
+        monkeypatch: pytest fixture
+            Used to mock the database query to simulate an error.
+
+    Raises:
+        AssertionError
+        If the status code is not 500 or if an error response is incorrect.
+    """
+    user, family = test_user_and_family
+    service = EventService()
+
+    def mock_query(*args, **kwargs):
+        raise Exception("Database error")
+
+    monkeypatch.setattr(service.db, "query", mock_query)
+
+    response, status = service.get_upcoming_events(family.family_id)
+    assert status == 500
+    assert response["message"] == "Error retrieving upcoming events"
+    assert response["category"] == "danger"
+    assert response["data"] is None
+
 def test_get_past_events(test_user_and_family):
     """
     This function tests whether the `get_past_events` method in `EventService` correctly
@@ -117,6 +202,57 @@ def test_get_past_events(test_user_and_family):
     assert status == 200
     assert response["message"] == "Past events retrieved successfully"
     assert any(event.event_name == "Past Event" for event in response["data"])
+
+def test_get_past_events_not_found(test_user_and_family):
+    """
+    Tests the behavior of get_past_events when no events are found.
+    Verifies that appropriate 404 status and warning message are returned.
+
+    Parameters:
+        test_user_and_family: tuple
+        A tuple containing test user and family instances.
+
+    Raises:
+        AssertionError
+        If the status code is not 404 or if the response message is incorrect.
+    """
+    user, family = test_user_and_family
+    service = EventService()
+
+    response, status = service.get_past_events(family.family_id)
+    assert status == 404
+    assert response["message"] == "No past events found"
+    assert response["category"] == "warning"
+    assert response["data"] is None
+
+def test_get_past_events_error(test_user_and_family, monkeypatch):
+    """
+    Tests error handling in get_past_events when a database query fails.
+    Verifies that appropriate 500 status and error message is returned.
+
+    Parameters:
+        test_user_and_family: tuple
+            A tuple containing test user and family instances.
+        monkeypatch: pytest fixture
+            Used to mock the database query to simulate an error.
+
+    Raises:
+        AssertionError
+        If the status code is not 500 or if an error response is incorrect.
+    """
+    user, family = test_user_and_family
+    service = EventService()
+
+    def mock_query(*args, **kwargs):
+        raise Exception("Database error")
+
+    monkeypatch.setattr(service.db, "query", mock_query)
+
+    response, status = service.get_past_events(family.family_id)
+    assert status == 500
+    assert response["message"] == "Error retrieving past events"
+    assert response["category"] == "danger"
+    assert response["data"] is None
 
 def test_event_belongs_to_current_user(session, test_user_and_family):
     """
@@ -143,6 +279,31 @@ def test_event_belongs_to_current_user(session, test_user_and_family):
     session.commit()
 
     assert EventService.event_belongs_to_current_user(event, user)
+
+def test_event_dont_belongs_to_current_user(session, test_user_and_family):
+    """
+    Tests whether the event does not belong to the current user.
+
+    This function checks if a given event is not associated with the current user by
+    verifying its family ID relation to the user's family.
+
+    Parameters:
+    session: Session
+        The database session used to interact with the database.
+    test_user_and_family: Tuple[User, Family]
+        A tuple containing a user and their associated family to use in the test.
+
+    Raises:
+    AssertionError
+        If the event is correctly associated with the current user.
+
+    """
+    user, _ = test_user_and_family
+    event = Event(event_name="Sample", event_date=datetime.now(), family_id=7)
+    session.add(event)
+    session.commit()
+
+    assert not EventService.event_belongs_to_current_user(event, user)
 
 def test_delete_event(app, test_user_and_family):
     """
@@ -213,3 +374,5 @@ def test_update_event(test_user_and_family):
     assert response["data"].location == "Updated Location"
     assert response["data"].description == "Updated Description"
     assert response["data"].event_date == datetime(25, 7, 1)
+    
+    
