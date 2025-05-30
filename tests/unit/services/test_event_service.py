@@ -5,50 +5,20 @@ from datetime import datetime, timedelta
 from flask_login import login_user
 from unittest.mock import Mock
 
-@pytest.fixture
-def test_user_and_family(session):
-    """
-    Fixture to create and provide a test user and family object for testing purposes.
-
-    This fixture creates a user with a specific name, email, and password, along with a
-    family associated with the user. It adds these objects to the database session
-    and commits the changes to make them persistent. The fixture ensures that the
-    user and associated family are cleaned up and deleted after the test execution
-    completes.
-
-    Yields:
-        tuple: A tuple containing the created user and family objects.
-    """
-    user = User(name="test-user", email="test@example.com", password="pass")
-    session.add(user)
-    session.commit()
-
-    family = Family(name="Test Family", user_id=user.user_id)
-    session.add(family)
-    session.commit()
-
-    user.families.append(family)
-    session.commit()
-    yield user, family
-
-    session.delete(user)
-    session.delete(family)
-    session.commit()
-
-def test_create_event(test_user_and_family):
+def test_create_event(test_family_1):
     """
     Tests the creation of an event using the EventService class and verifies
     the response and status code for successful execution.
 
-    Args:
-        test_user_and_family (tuple): A tuple containing a mock user and their
-            associated family for the test.
+    Parameters:
+        test_family_1: TestFamily
+        A test family object used for generating the event data.
 
     Raises:
-        AssertionError: If the response does not indicate success or the event
+        AssertionError: If the response does not indicate success, or the event
             data does not match the input parameters.
     """
-    user, family = test_user_and_family
+    family = test_family_1
     service = EventService()
 
     event_date = (datetime.now() + timedelta(days=5))
@@ -64,30 +34,39 @@ def test_create_event(test_user_and_family):
     assert response["message"] == "Event created successfully"
     assert response["data"].event_name == "Test Event"
 
-def test_create_event_error(test_user_and_family):
+def test_create_event_error(test_family_1, monkeypatch):
     """
-    Tests the behavior of the `create_event` method in the `EventService` class
-    when invalid input parameters are provided. Specifically, it checks how the
-    method handles an attempt to create an event with a `None` event date.
+    Tests the behavior of the create_event method in EventService when a
+    database error occurs. This function ensures that the service correctly
+    handles database exceptions and returns the appropriate response and
+    status code.
 
-    Parameters
-    ----------
-    test_user_and_family : tuple
-        A tuple containing a user and a corresponding family instance, with
-        a valid family_id used to test the event creation.
+    Parameters:
+    test_family_1: TestFamily
+        A test family object used for generating the event data.
+    monkeypatch: MonkeyPatch
+        A pytest fixture used to replace the database add method to simulate
+        an exception scenario.
 
-    Raises
-    ------
-    AssertionError
-        If the status code returned by `create_event` is not 500, or if the
-        response does not match the expected output for the error case.
+    Raises:
+    Exception
+        Simulates a database error when the database add method is called.
 
+    Assertions:
+    Asserts that the HTTP status code returned by the create_event method is
+    500 (server error) and that the response contains the expected error
+    message, category, and data when an exception occurs in the database.
     """
-    user, family = test_user_and_family
+    family = test_family_1
     service = EventService()
 
+    def mock_add(*args):
+        raise Exception("Database error")
+    # mock the database add method to raise an exception during the event creation
+    monkeypatch.setattr(service.db, "add", mock_add)
+
     response, status = service.create_event(
-        event_date=None, # pass a None event_date to raise an Exception
+        event_date=datetime(25, 4, 1),
         event_name="Test Event",
         family_id=family.family_id,
         location="Test Location",
@@ -240,6 +219,82 @@ def test_get_past_events_error(test_user_and_family):
     assert response["category"] == "danger"
     assert response["data"] is None
 
+def test_get_event(test_event_1):
+    """
+    Test the retrieval of an event using the EventService class.
+
+    This function verifies that an event can be successfully retrieved by its
+    ID using the get_event method of the EventService class. It checks the
+    status code, message, and event name in the response to ensure correctness.
+
+    Parameters
+    ----------
+    test_event_1 : Event
+        An instance of an event object to be used for testing.
+
+    """
+    service = EventService()
+    event = test_event_1
+    response, status = service.get_event(event.event_id)
+    assert status == 200
+    assert response["message"] == "Event retrieved successfully"
+    assert response["data"].event_name == event.event_name
+
+def test_get_event_not_found():
+    """
+    Test case for verifying the behavior of the EventService when attempting to
+    retrieve a non-existent event.
+
+    This test ensures that the service returns the appropriate HTTP status code,
+    error message, and related informational fields when an event is not found.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    AssertionError
+        If the returned status, message, category, or data does not match the
+        expected values.
+    """
+    service = EventService()
+    response, status = service.get_event(100)
+    assert status == 404
+    assert response["message"] == "Event not found"
+    assert response["category"] == "warning"
+    assert response["data"] is None
+
+def test_get_event_error(test_event_1, monkeypatch):
+    """
+    Tests the behavior of the `EventService.get_event` method when an exception is raised by the
+    database during the operation.
+
+    Args:
+        test_event_1: A fixture providing a test event object.
+        monkeypatch: A fixture provided by pytest to dynamically modify or mock objects.
+
+    Raises:
+        Exception: Raised as part of the test to simulate a database error.
+    """
+    service = EventService()
+    event = test_event_1
+
+    def mock_get(*args):
+        raise Exception("Database error")
+
+    monkeypatch.setattr(service.db, "get", mock_get)
+
+    response, status = service.get_event(event.event_id)
+    assert status == 500
+    assert response["message"] == "Error retrieving event"
+    assert response["category"] == "danger"
+    assert response["data"] is None
+
 def test_event_belongs_to_current_user(session, test_user_and_family):
     """
     Tests whether an event is associated with a user's family.
@@ -334,6 +389,48 @@ def test_update_event(test_user_and_family):
     assert response["data"].location == "Updated Location"
     assert response["data"].description == "Updated Description"
     assert response["data"].event_date == datetime(25, 7, 1)
+
+def test_update_event_error(session, monkeypatch):
+    """
+    tests the behavior of the EventService when attempting to update an event but encountering
+    a database error during the commit operation. It uses mocking to simulate the error
+    scenario and ensures that the service returns the appropriate error response and status.
+
+    Args:
+        session (Session): The database session to be used for setting up the test data.
+        monkeypatch (MonkeyPatch): A pytest fixture used to modify the behavior of the service's
+            database commit method.
+
+    Raises:
+        Exception: Raised when the mocked commit function is triggered to simulate
+            a database error during the update operation.
+    """
+    service = EventService()
+    event = Event(
+        event_name="Sample",
+        event_date=datetime.now(),
+        family_id=1
+    )
+    session.add(event)
+    session.commit()
+
+    def mock_commit(*args):
+        raise Exception("Database error")
+
+    # mock the database commit method to raise an exception during the update operation
+    monkeypatch.setattr(service.db, "commit", mock_commit)
+
+    response, status = service.update_event(
+        event,
+        event_date=event.event_date,
+        event_name="Updated Name",
+        location=event.location,
+        description=event.description
+    )
+
+    assert status == 500
+    assert response["message"] == "Error updating event"
+    assert response["data"] is None
 
 def test_delete_event(app, test_user_and_family):
     """
