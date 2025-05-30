@@ -2,6 +2,7 @@ import pytest
 from app import create_app
 from app.extensions import db as _db
 from config import TestConfig
+from app.models import Family, User
 
 @pytest.fixture(scope='session')
 def app():
@@ -65,3 +66,84 @@ def session(db):
     transaction.rollback()
     connection.close()
     db.session.remove()
+
+@pytest.fixture
+def test_family_1(session):
+    """
+    Fixture to create and manage a test Family object within a database session.
+
+    This fixture is used to create a Family object with the name "Test Family 1",
+    add it to the session, and commit the transaction. After yielding the
+    Family object for testing purposes, the fixture ensures cleanup by
+    removing the object from the database.
+
+    Yields:
+        Family: The Family object created and added to the session.
+    """
+    family = Family(name="Test Family 1")
+    session.add(family)
+    session.commit()
+    yield family
+    session.delete(family)
+    session.commit()
+
+@pytest.fixture
+def test_family_2(session):
+    """
+    Fixture to provide a reusable Family object for testing purposes.
+
+    This fixture creates a Family object with a predefined name and interacts with
+    the provided session to persist it into the database before yielding. After
+    yielding the Family object to the test, it ensures cleanup by removing the
+    Family object from the database.
+
+    Yields:
+        Family: A Family object initialized with the name "Test Family 2".
+    """
+    family = Family(name="Test Family 2")
+    session.add(family)
+    session.commit()
+    yield family
+    session.delete(family)
+    session.commit()
+
+@pytest.fixture
+def test_user_1(session):
+    """
+    Fixture for creating and managing temporary User object for testing purposes.
+
+    This fixture sets up a test user, adds it to the session, commits the session, and yields
+    the user object for use in test functions. After the test, it cleans up by deleting the
+    user from the session and committing the session to persist its removal.
+
+    Yields:
+        User: A temporary User object created for testing.
+
+    Parameters:
+        session (Session): A database session used to interact with the database.
+    """
+    user = User(name="Test User 1", email="user1@mail.com", password="user1password")
+    session.add(user)
+    session.commit()
+    yield user
+    session.delete(user)
+    session.commit()
+
+@pytest.fixture
+def test_user_2(session):
+    """
+    This function is a pytest fixture used to create and manage a test user in the test database session. It sets up a
+    user, commits it to the session, and ensures proper cleanup after test execution.
+
+    Yields:
+        User: A User object instance created and added to the session.
+
+    Args:
+        session: The database session fixture.
+    """
+    user = User(name="Test User 2", email="user2@mail.com", password="user2password")
+    session.add(user)
+    session.commit()
+    yield user
+    session.delete(user)
+    session.commit()
