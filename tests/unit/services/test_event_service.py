@@ -3,6 +3,7 @@ from app.models import User, Family, Event
 from app.event.services import EventService
 from datetime import datetime, timedelta
 from flask_login import login_user
+from unittest.mock import Mock
 
 @pytest.fixture
 def test_user_and_family(session):
@@ -86,7 +87,7 @@ def test_create_event_error(test_user_and_family):
     service = EventService()
 
     response, status = service.create_event(
-        event_date=None,
+        event_date=None, # pass a None event_date to raise an Exception
         event_name="Test Event",
         family_id=family.family_id,
         location="Test Location",
@@ -149,30 +150,25 @@ def test_get_upcoming_events_not_found(test_user_and_family):
     assert response["category"] == "warning"
     assert response["data"] is None
 
-def test_get_upcoming_events_error(test_user_and_family, monkeypatch):
+def test_get_upcoming_events_error(test_user_and_family):
     """
-    Tests error handling in get_upcoming_events when a database query fails.
-    Verifies that appropriate 500 status and error message is returned.
+    tests the behavior of the get_upcoming_events method when an error occurs while
+    retrieving events for a given family.
 
     Parameters:
-        test_user_and_family: tuple
-            A tuple containing test user and family instances.
-        monkeypatch: pytest fixture
-            Used to mock the database query to simulate an error.
+    user (User): A mock user object having relevant attributes.
+    family (Family): A mock family object belonging to the user.
 
     Raises:
-        AssertionError
-        If the status code is not 500 or if an error response is incorrect.
+    Any exception occurring during a database query.
+
+    Returns:
+    None: Assertion methods are used to validate the function behavior.
     """
     user, family = test_user_and_family
     service = EventService()
 
-    def mock_query(*args, **kwargs):
-        raise Exception("Database error")
-
-    monkeypatch.setattr(service.db, "query", mock_query)
-
-    response, status = service.get_upcoming_events(family.family_id)
+    response, status = service.get_upcoming_events(family) # pass a family object instead of family_id to raise database Exception
     assert status == 500
     assert response["message"] == "Error retrieving upcoming events"
     assert response["category"] == "danger"
@@ -225,30 +221,20 @@ def test_get_past_events_not_found(test_user_and_family):
     assert response["category"] == "warning"
     assert response["data"] is None
 
-def test_get_past_events_error(test_user_and_family, monkeypatch):
+def test_get_past_events_error(test_user_and_family):
     """
-    Tests error handling in get_past_events when a database query fails.
-    Verifies that appropriate 500 status and error message is returned.
+    Tests the behavior of the `EventService.get_past_events` method when a database
+    exception occurs. The test verifies that the appropriate error message, status,
+    and response data are returned when the method fails.
 
-    Parameters:
-        test_user_and_family: tuple
-            A tuple containing test user and family instances.
-        monkeypatch: pytest fixture
-            Used to mock the database query to simulate an error.
-
-    Raises:
-        AssertionError
-        If the status code is not 500 or if an error response is incorrect.
+    Args:
+        test_user_and_family (tuple): A tuple containing a test user and their family
+        object.
     """
     user, family = test_user_and_family
     service = EventService()
 
-    def mock_query(*args, **kwargs):
-        raise Exception("Database error")
-
-    monkeypatch.setattr(service.db, "query", mock_query)
-
-    response, status = service.get_past_events(family.family_id)
+    response, status = service.get_past_events(family) # pass a family object instead of family_id to raise database Exception
     assert status == 500
     assert response["message"] == "Error retrieving past events"
     assert response["category"] == "danger"
@@ -305,32 +291,6 @@ def test_event_dont_belongs_to_current_user(session, test_user_and_family):
 
     assert not EventService.event_belongs_to_current_user(event, user)
 
-def test_delete_event(app, test_user_and_family):
-    """
-    Tests the event deletion functionality provided by the EventService class.
-    It ensures that an event can be created and subsequently deleted successfully.
-    The test uses a logged-in user and verifies the response message and status.
-
-    Parameters:
-        app: Flask application for request context.
-        test_user_and_family: Tuple containing test user and associated family.
-
-    Raises:
-        AssertionError: If the event deletion response does not meet the expected
-                        success message or status.
-    """
-    user, family = test_user_and_family
-    service = EventService()
-    event_date = datetime.now()
-    response = service.create_event(event_date, "Delete Me", family.family_id, None, None)
-    event = response[0]["data"]
-
-    with app.test_request_context():
-        login_user(user)
-        response, status = service.delete_an_event(event.event_id)
-        assert status == 200
-        assert response["message"] == "Event deleted successfully"
-
 def test_update_event(test_user_and_family):
     """
     Tests the functionality of the EventService class, specifically the update_event method,
@@ -374,5 +334,116 @@ def test_update_event(test_user_and_family):
     assert response["data"].location == "Updated Location"
     assert response["data"].description == "Updated Description"
     assert response["data"].event_date == datetime(25, 7, 1)
-    
-    
+
+def test_delete_event(app, test_user_and_family):
+    """
+    Tests the event deletion functionality provided by the EventService class.
+    It ensures that an event can be created and subsequently deleted successfully.
+    The test uses a logged-in user and verifies the response message and status.
+
+    Parameters:
+        app: Flask application for request context.
+        test_user_and_family: Tuple containing test user and associated family.
+
+    Raises:
+        AssertionError: If the event deletion response does not meet the expected
+                        success message or status.
+    """
+    user, family = test_user_and_family
+    service = EventService()
+    event_date = datetime.now()
+    response = service.create_event(event_date, "Delete Me", family.family_id, None, None)
+    event = response[0]["data"]
+
+    with app.test_request_context():
+        login_user(user)
+        response, status = service.delete_an_event(event.event_id)
+        assert status == 200
+        assert response["message"] == "Event deleted successfully"
+
+def test_delete_event_not_belong_to_user(app, test_user_and_family):
+    """
+    Test the deletion of an event that does not belong to the current user's family.
+
+    This test ensures that a user cannot delete an event associated with a family
+    that they are not a member of. It validates the proper handling of authorization
+    by the `EventService` when an attempt is made to delete such an event.
+
+    Parameters:
+        app
+            The Flask application instance.
+        test_user_and_family
+            A fixture providing a test user and their associated family.
+
+    Raises:
+        AssertionError: If the expected HTTP status or response message is not
+        returned when attempting to delete an unauthorized event.
+    """
+    user, _ = test_user_and_family
+    service = EventService()
+    event_date = datetime.now()
+
+    response = service.create_event(
+        event_date=event_date,
+        event_name="Delete Me",
+        family_id=88,  # use family_id that does not belong to the current_user family
+        description=None,
+        location=None)
+    event = response[0]["data"]
+
+    with app.test_request_context():
+        login_user(user)
+        response, status = service.delete_an_event(event.event_id)
+        assert status == 403
+        assert response["message"] == "You are not authorized to delete this event"
+
+def test_delete_event_error(app, test_user_and_family, monkeypatch):
+    """
+    Tests the behavior of the delete_event method in the EventService class when
+    a database error occurs during the event deletion process. Ensures that the
+    appropriate error handling mechanisms, such as rolling back the database and
+    returning a meaningful error message, are executed as expected.
+
+    Args:
+        app (Flask): The Flask application instance used to create the request
+            context.
+        test_user_and_family (tuple): A tuple containing a test user and their
+            associated family for use in the test. The first element is the user,
+            and the second element is the family.
+        monkeypatch (MonkeyPatch): A pytest fixture to dynamically modify or
+            replace parts of the code during testing.
+
+    Raises:
+        Exception: Simulates a database deletion error in the test by
+            triggering an exception in the mocked database object.
+    """
+    user, family = test_user_and_family
+    service = EventService()
+
+    response = service.create_event(
+        event_date=datetime.now(),
+        event_name="Delete Me",
+        family_id=family.family_id,
+        description=None,
+        location=None
+    )
+    event = response[0]["data"]
+
+    # a mock DB that raises an exception on delete
+    mock_db = Mock()
+    mock_db.delete.side_effect = Exception("Database error")
+    mock_db.get.return_value = event  # Return the real event for the get_event call
+    mock_db.rollback = Mock()  # Adding mock rollback method
+
+    with app.test_request_context():
+        login_user(user)
+        # here we are replacing the entire db object with our mock
+        monkeypatch.setattr(service, "db", mock_db)
+
+        response, status = service.delete_an_event(event.event_id)
+
+        assert status == 500
+        assert response["message"] == "Error deleting event"
+        assert response["category"] == "danger"
+        assert response["data"] is None
+        assert mock_db.rollback.called  # verifying the rollback was called
