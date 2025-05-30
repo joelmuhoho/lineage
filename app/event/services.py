@@ -137,7 +137,7 @@ class EventService:
             return service_response(200, "Event deleted successfully", "success", None)
         except Exception as e:
             self.db.rollback()
-            return service_response(500, f"Error deleting event {str(e)}", "danger", None)
+            return service_response(500, f"Error deleting event", "danger", None)
 
     def update_event(self, event: Event, event_date: datetime, event_name: str, location: str, description: str) -> Tuple[dict, int]:
         """
