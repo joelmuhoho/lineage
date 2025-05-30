@@ -2,7 +2,9 @@ import pytest
 from app import create_app
 from app.extensions import db as _db
 from config import TestConfig
-from app.models import Family, User
+from app.models import Family, User, Event
+from datetime import datetime
+
 
 @pytest.fixture(scope='session')
 def app():
@@ -147,3 +149,80 @@ def test_user_2(session):
     yield user
     session.delete(user)
     session.commit()
+
+@pytest.fixture
+def test_event_1(session, test_family_1):
+    """
+    Provides a test fixture for an event object meant for testing purposes.
+
+    This fixture creates an Event object with predefined attributes, adds it
+    to the session, and commits the changes to the database. After the test
+    is completed, the fixture ensures cleanup by deleting the event object
+    from the session and committing the session.
+
+    Parameters:
+        session: Session
+            SQLAlchemy session object used to handle database interactions
+            during the test.
+        test_family_1: Family
+            Predefined family object containing the necessary attributes
+            required for creating the event.
+
+    Yields:
+        Event
+            The event object created within this test fixture.
+
+    This ensures that the database remains in a consistent and clean state
+    during and after test execution.
+    """
+    event = Event(
+        event_date=datetime(25, 4, 1),
+        event_name="event_1",
+        family_id=test_family_1.family_id
+    )
+    session.add(event)
+    session.commit()
+    yield event
+    session.delete(event)
+    session.commit()
+
+@pytest.fixture
+def test_user_and_family(test_user_1, test_family_1, session):
+    """
+    Provides a pytest fixture that associates a test user with a test family and prepares it
+    for testing. This fixture establishes a relationship between the user and the family,
+    ensures the relationship is saved in the session, and yields the test data.
+
+    Args:
+        test_user_1: The test user object that will be associated with a family.
+        test_family_1: The test family object to associate with the test user.
+        session: The database session used to commit changes.
+
+    Yields:
+        tuple: A tuple containing the test user and test family objects after the
+        association is established and persisted.
+    """
+    test_user_1.families.append(test_family_1)
+    session.commit()
+    yield test_user_1, test_family_1
+
+@pytest.fixture
+def test_user_and_families(test_user_1, test_family_1, test_family_2, session):
+    """
+    Creates a test fixture that associates a user with multiple families and ensures
+    these relationships are persisted correctly within a database session. The fixture
+    yields the user and the associated families for use in tests.
+
+    Parameters:
+        test_user_1: The first test user object.
+        test_family_1: The first test family object to be associated with the user.
+        test_family_2: The second test family object to be associated with the user.
+        session: A database session used to commit the changes.
+
+    Yields:
+        tuple: A tuple containing the updated user and the two associated families.
+    """
+    test_user_1.families.append(test_family_1)
+    test_user_1.families.append(test_family_2)
+    session.commit()
+    yield test_user_1, test_family_1, test_family_2
