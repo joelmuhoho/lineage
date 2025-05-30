@@ -4,8 +4,10 @@ from app.services.service_base import service_response
 from typing import Tuple
 
 class FamilyService:
-    @staticmethod
-    def get_family_by_id(family_id: int) -> Tuple[dict, int]:
+    def __init__(self, db_session=None):
+        self.db = db.session or db_session
+
+    def get_family_by_id(self, family_id: int) -> Tuple[dict, int]:
         """
         Retrieves a family by its id.
 
@@ -16,17 +18,17 @@ class FamilyService:
             Tuple[dict, int]: A tuple containing a dictionary and HTTP status code.
         """
         try:
-            family = db.session.query(Family).filter_by(family_id=family_id).first()
+            family = self.db.query(Family).filter_by(family_id=family_id).first()
             if family:
                 return service_response(200, "Family found", "success", family)
             else:
                 return service_response(404, "Family not found", "warning", None)
         except Exception as e:
             # Todo: log the error
+            print(str(e))
             return service_response(500, "Something went wrong", "error", None)
 
-    @staticmethod
-    def get_user_families(user_id: int) -> Tuple[dict, int]:
+    def get_user_families(self, user_id: int) -> Tuple[dict, int]:
         """
         Retrieves all families for a user.
 
@@ -38,7 +40,7 @@ class FamilyService:
 
         """
         try:
-            families = db.session.query(Family).filter_by(user_id=user_id).all()
+            families = self.db.query(Family).filter_by(user_id=user_id).all()
             if families:
                 return service_response(200, "Families found", "success", families)
             else:
@@ -47,8 +49,7 @@ class FamilyService:
             # Todo: log the error
             return service_response(500, "Something went wrong", "error", None)
 
-    @staticmethod
-    def create_family(family_name: str, user_id: int) -> Tuple[dict, int]:
+    def create_family(self, family_name: str, user_id: int) -> Tuple[dict, int]:
         """
         Creates a new family.
 
@@ -61,16 +62,15 @@ class FamilyService:
         """
         try:
             new_family = Family(name=family_name, user_id=user_id)
-            db.session.add(new_family)
-            db.session.commit()
+            self.db.add(new_family)
+            self.db.commit()
             return service_response(201, "Family created successfully", "success", new_family)
         except Exception as e:
-            db.session.rollback()
+            self.db.rollback()
             # Todo: log the error
             return service_response(500, "Something went wrong", "error", None)
 
-    @staticmethod
-    def family_belongs_to_user(family_id: int, user_id: int) -> bool:
+    def family_belongs_to_user(self, family_id: int, user_id: int) -> bool:
         """
         Checks if a family belongs to a user.
 
@@ -81,11 +81,10 @@ class FamilyService:
         Returns:
             bool: True if the family belongs to the user, False otherwise.
         """
-        family = db.session.query(Family).filter_by(family_id=family_id, user_id=user_id).first()
+        family = self.db.query(Family).filter_by(family_id=family_id, user_id=user_id).first()
         return family is not None
 
-    @staticmethod
-    def delete_family(family_id: int) -> Tuple[dict, int]:
+    def delete_family(self, family_id: int) -> Tuple[dict, int]:
         """
         Deletes a family.
 
@@ -96,14 +95,14 @@ class FamilyService:
             Tuple[dict, int]: A tuple containing a dictionary and HTTP status code.
         """
         try:
-            family = db.session.query(Family).filter_by(family_id=family_id).first()
+            family = self.db.query(Family).filter_by(family_id=family_id).first()
             if family:
-                db.session.delete(family)
-                db.session.commit()
+                self.db.delete(family)
+                self.db.commit()
                 return service_response(200, "Family deleted successfully", "success", None)
             else:
                 return service_response(404, "Family not found", "warning", None)
         except Exception as e:
-            db.session.rollback()
+            self.db.rollback()
             # Todo: log the error
             return service_response(500, "Something went wrong", "error", None)
