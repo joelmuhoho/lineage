@@ -12,13 +12,14 @@ from app.member.services import MemberService
 @bp.route('/family/<family_id>')
 @bp.route('/family')
 def index(family_id=0):
+    family_service = FamilyService()
     families = []
     if not family_id == 0:
         AuthService.set_current_family_id(family_id)
 
         current_family_id = session.get("current_family_id")
         if current_family_id is not None:
-            data, status = FamilyService.get_family_by_id(current_family_id)
+            data, status = family_service.get_family_by_id(current_family_id)
             family, message, category = data.get('data'), data.get('message'), data.get('category')
             if status != 200:
                 flash(message, category)
@@ -28,7 +29,7 @@ def index(family_id=0):
                 families = [family]
 
     elif current_user.is_authenticated:
-        data, status = FamilyService.get_user_families(current_user.user_id)
+        data, status = family_service.get_user_families(current_user.user_id)
         families, message, category = data.get('data'), data.get('message'), data.get('category')
         if status != 200:
             flash(message, category)
@@ -41,12 +42,13 @@ def index(family_id=0):
 @bp.route('/create-family', methods=['GET', 'POST'])
 @login_required
 def create_family():
+    family_service = FamilyService()
     form = CreateFamilyForm()
     member_form = MemberForm()
     member_service = MemberService()
 
     if form.validate_on_submit() and member_form.validate_on_submit():
-        data, status = FamilyService.create_family(form.name.data, current_user.user_id)
+        data, status = family_service.create_family(form.name.data, current_user.user_id)
         family, message, category = data.get('data'), data.get('message'), data.get('category')
         if status != 201:
             flash(message, category)
@@ -69,12 +71,13 @@ def create_family():
 @bp.route('/family/delete/<family_id>')
 @login_required
 def delete_family(family_id):
-    is_family_owner = FamilyService.family_belongs_to_user(family_id=id, user_id=current_user.user_id)
+    family_service = FamilyService()
+    is_family_owner = family_service.family_belongs_to_user(family_id=int(family_id), user_id=current_user.user_id)
     if not is_family_owner:
         flash('You are not allowed to delete this family', 'info')
         return redirect(url_for('user.user_profile'))
 
-    data, _ = FamilyService.delete_family(family_id=family_id)
+    data, _ = family_service.delete_family(family_id=family_id)
     message, category = data.get('message'), data.get('category')
 
     flash(message, category)
@@ -83,7 +86,8 @@ def delete_family(family_id):
 @bp.route('/create_link/<family_id>', methods=['POST', 'GET'])
 @login_required
 def create_link(family_id):
-    data, status = FamilyService.get_family_by_id(family_id)
+    family_service = FamilyService()
+    data, status = family_service.get_family_by_id(family_id)
     family, message, category = data.get('data'), data.get('message'), data.get('category')
     if status != 200:
         flash(message, category)
@@ -92,11 +96,12 @@ def create_link(family_id):
         flash(message, category)
         return redirect(url_for('user.user_profile'))
 
-    if not FamilyService.family_belongs_to_user(family_id=family_id, user_id=current_user.user_id):
+    if not family_service.family_belongs_to_user(family_id=family_id, user_id=current_user.user_id):
         flash('You are not allowed to create a link for this family', 'info')
         return redirect(url_for('user.user_profile'))
 
-    data, status = LinkService.create_link(family)
+    link_service = LinkService()
+    data, status = link_service.create_link(family)
     message, category = data.get('message'), data.get('category')
     flash(message, category)
     return redirect(url_for('user.user_profile'))
@@ -105,7 +110,8 @@ def create_link(family_id):
 @bp.route('/delete_link/<link_id>')
 @login_required
 def delete_link(link_id):
-    data, _ = LinkService.delete_link(link_id=link_id)
+    link_service = LinkService()
+    data, _ = link_service.delete_link(link_id=link_id)
     message, category = data.get('message'), data.get('category')
 
     flash(message, category)
