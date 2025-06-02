@@ -1,5 +1,7 @@
 import pytest
 from app.family.services import FamilyService
+from app.models import Family
+
 
 def test_get_family_by_id(test_family_1):
     """
@@ -107,8 +109,10 @@ def test_get_user_families_error(test_user_with_two_families, monkeypatch):
     test_user_with_two_families : User
         A fixture object representing a test user associated with
         two family records in the database.
-    monkeypatch : pytest Fixture
-        Utility for dynamically modifying or patching code during tests.
+
+    monkeypatch : pytest.MonkeyPatch
+        A fixture provided by pytest to modify or replace the behavior of
+        objects or methods during testing.
 
     Raises
     ------
@@ -125,4 +129,160 @@ def test_get_user_families_error(test_user_with_two_families, monkeypatch):
     response, status = service.get_user_families(test_user_with_two_families.user_id)
     assert status == 500
     assert response['message'] == "Error retrieving families"
+    assert response['data'] is None
+
+def test_create_family():
+    """
+    Tests the creation of a family using the FamilyService.
+
+    Provides assertions to validate the successful execution of the create_family
+    method, verifying that the expected status code, message, and family name
+    are correctly returned.
+    Raises:
+        AssertionError: If any of the assertions fail, indicating unexpected
+                        behavior in the family creation process.
+    """
+    service = FamilyService()
+    response, status = service.create_family(family_name="new_family", user_id=1)
+    assert status == 201
+    assert response['message'] == "Family created successfully"
+    assert response['data'].name == "new_family"
+
+def test_create_family_error(monkeypatch):
+    """
+    Tests the behavior of the `create_family` method in the `FamilyService`
+    class when the database add operation fails due to an exception.
+
+    This test simulates a failure in the database add operation to verify
+    that the service correctly handles the exception and returns the
+    appropriate response and status code.
+
+    Parameters
+    ----------
+    monkeypatch : pytest.MonkeyPatch
+        A fixture provided by pytest to modify or replace the behavior of
+        objects or methods during testing.
+    """
+    service = FamilyService()
+
+    def mock_add(*args):
+        raise Exception("Database error")
+
+    # mock the database add method to raise an exception during the family creation
+    monkeypatch.setattr(service.db, "add", mock_add)
+
+    response, status = service.create_family(family_name="new_family", user_id=1)
+    assert status == 500
+    assert response['message'] == "Error creating family"
+    assert response['data'] is None
+
+def test_family_belongs_to_user(test_user_with_one_family):
+    """
+    Tests if a family belongs to a specified user.
+
+    This function verifies whether the family associated with the given
+    user ID belongs to the user by utilizing the FamilyService class.
+    This is achieved by comparing the user ID and family ID within
+    the test setup.
+
+    Args:
+        test_user_with_one_family: An instance representing a test user
+            with exactly one associated family. The `user_id` identifies
+            the user, and `families` is a list containing one family with
+            its respective `family_id` value.
+
+    """
+    service = FamilyService()
+    assert service.family_belongs_to_user(test_user_with_one_family.user_id, test_user_with_one_family.families[0].family_id)
+
+def test_family_belongs_to_user_false(test_user_1, test_family_1):
+    """
+    Tests the `family_belongs_to_user` method to assert that it returns False when
+    the specified family does not belong to the given user.
+
+    Arguments:
+    test_user_1: User
+        The test user with a user_id to verify ownership of the family.
+    test_family_1: Family
+        The test family object with a family_id that should not belong to the user.
+
+    Raises:
+    AssertionError
+        If the `family_belongs_to_user` method does not return False when the
+        family does not belong to the specified user.
+    """
+    service = FamilyService()
+    assert not service.family_belongs_to_user(test_user_1.user_id, test_family_1.family_id)
+
+def test_delete_family(session):
+    """
+    Test the deletion of a family record using the FamilyService class.
+
+    This test ensures that a family can be created, committed to the session, and then
+    successfully deleted using the delete_family method. It also checks that the response
+    message and status code are correct, and verifies that no additional data is returned
+    in the response.
+
+    Parameters:
+    session: Session
+        The database session used for creating and committing the family record.
+
+    Raises:
+    AssertionError
+        If any of the response values (status, message, or data) do not match the
+        expected outcome.
+    """
+    family = Family(name="Test Family", user_id=1)
+    session.add(family)
+    session.commit()
+
+    service = FamilyService()
+    response, status = service.delete_family(family.family_id)
+    assert status == 200
+    assert response['message'] == "Family deleted successfully"
+    assert response['data'] is None
+
+def test_delete_non_existing_family():
+    """
+    Test the deletion of a non-existing family and response handling in the FamilyService.
+
+    The function tests the `delete_family` method by attempting to delete a
+    family that is known to not exist, verifying that the response and status
+    returned are correct.
+    """
+    service = FamilyService()
+    response, status = service.delete_family(17)
+    assert status == 404
+    assert response['message'] == "Family not found"
+
+def test_delete_family_error(session, monkeypatch):
+    """
+    Test the deletion of a family entity when a database error occurs during the
+    process.
+
+    Arguments:
+        session (Session): The database session used for setting up and
+            committing test data before the test execution.
+        monkeypatch (MonkeyPatch): A pytest fixture that is used for
+            dynamically modifying classes or objects during testing.
+
+    Raises:
+        Exception: Mocked exception that simulates a database error during
+            the deletion of a family entity.
+    """
+    family = Family(name="Test Family", user_id=1)
+    session.add(family)
+    session.commit()
+
+    service = FamilyService()
+
+    def mock_delete(*args):
+        raise Exception("Database error")
+
+    # mock the database delete method to raise an exception during the family deletion
+    monkeypatch.setattr(service.db, "delete", mock_delete)
+
+    response, status = service.delete_family(family.family_id)
+    assert status == 500
+    assert response['message'] == "Error deleting family"
     assert response['data'] is None
