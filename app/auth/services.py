@@ -28,7 +28,7 @@ class AuthService:
     @staticmethod
     def set_current_family_id(current_family_id: Optional[int] = None):
         """Set the current family ID for the current user."""
-        if current_user.is_authenticated:
+        if current_user and current_user.is_authenticated:
             families_length = len(current_user.families)
             if families_length == 1:
                 session['current_family_id'] = current_user.families[0].family_id
