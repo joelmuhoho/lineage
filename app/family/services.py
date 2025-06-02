@@ -47,7 +47,7 @@ class FamilyService:
                 return service_response(404, "No families found", "warning", None)
         except Exception as e:
             # Todo: log the error
-            return service_response(500, "Something went wrong", "error", None)
+            return service_response(500, "Error retrieving families", "error", None)
 
     def create_family(self, family_name: str, user_id: int) -> Tuple[dict, int]:
         """
