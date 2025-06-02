@@ -207,22 +207,8 @@ def test_user_and_family(test_user_1, test_family_1, session):
     yield test_user_1, test_family_1
 
 @pytest.fixture
-def test_user_and_families(test_user_1, test_family_1, test_family_2, session):
-    """
-    Creates a test fixture that associates a user with multiple families and ensures
-    these relationships are persisted correctly within a database session. The fixture
-    yields the user and the associated families for use in tests.
-
-    Parameters:
-        test_user_1: The first test user object.
-        test_family_1: The first test family object to be associated with the user.
-        test_family_2: The second test family object to be associated with the user.
-        session: A database session used to commit the changes.
-
-    Yields:
-        tuple: A tuple containing the updated user and the two associated families.
-    """
-    test_user_1.families.append(test_family_1)
-    test_user_1.families.append(test_family_2)
+def test_user_with_two_families(test_user_1, test_family_1, test_family_2, session):
+    test_family_1.user_id = test_user_1.user_id
+    test_family_2.user_id = test_user_1.user_id
     session.commit()
-    yield test_user_1, test_family_1, test_family_2
+    yield test_user_1
