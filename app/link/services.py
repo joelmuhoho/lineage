@@ -4,59 +4,86 @@ from app.utils import auth_s
 from app.family.services import FamilyService
 from app.services.service_base import service_response
 from flask_login import current_user
-from typing import Tuple, Union
+from typing import Tuple, Union, Optional
+from http import HTTPStatus
 
 class LinkService:
-    @staticmethod
-    def create_link(object: Union[Family, Event, Member] ) -> Tuple[dict, int]:
+
+    def __init__(self, db_session=None):
+        self.db = db_session or db.session
+        self.family_service = FamilyService()
+
+    def _check_existing_link(self, family_id: int) -> Optional[Link]:
+        """Check if a link already exists for the given family."""
+        return self.db.query(Link).filter_by(family_id=family_id).first()
+
+    def create_link(self, entity: Union[Family, Event, Member]) -> Tuple[dict, int]:
         """
-        Creates a new link for an object.
-
+        Creates a new link for an entity.
         Args:
-            object (object): The object to create a link for.
-
+            entity: The entity (Family/Event/Member) to create a link for.
         Returns:
-            Tuple[dict, int]: A tuple containing a dictionary and HTTP status code.
+            Tuple[dict, int]: Response containing status and message.
         """
         try:
-            existing_link = db.session.query(Link).filter_by(family_id=object.family_id).first()
+            existing_link = self._check_existing_link(entity.family_id)
             if existing_link:
-                return service_response(409, "Link already exists", "warning", None)
+                return service_response(
+                    HTTPStatus.CONFLICT,
+                    "Link already exists for this family",
+                    "warning",
+                    None
+                )
 
-            token = auth_s.dumps({"object_id": object.family_id})
+            token = auth_s.dumps({"object_id": entity.family_id})
+            new_link = Link(link=token, family_id=entity.family_id)
 
-            new_link = Link(link=token, family_id=object.family_id)
-            db.session.add(new_link)
-            db.session.commit()
-            return service_response(201, "Link created successfully", "success", new_link)
+            self.db.add(new_link)
+            self.db.commit()
+
+            return service_response(
+                HTTPStatus.CREATED,
+                "Link created successfully",
+                "success",
+                new_link
+            )
         except Exception as e:
-            db.session.rollback()
+            self.db.rollback()
             # Todo: log the error
-            return service_response(500, "Something went wrong", "danger", None)
+            return service_response(
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+                "Error creating link",
+                "danger",
+                None
+            )
 
-    @staticmethod
-    def delete_link(link_id: int) -> Tuple[dict, int]:
+    def delete_link(self, link_id: int) -> Tuple[dict, int]:
         """
         Deletes a link.
-
         Args:
-            link_id (int): The id of the link to delete.
-
+            link_id: The id of the link to delete.
         Returns:
-            Tuple[dict, int]: A tuple containing a dictionary and HTTP status code.
+            Tuple[dict, int]: Response containing status and message.
         """
         try:
             link = db.session.query(Link).filter_by(link_id=link_id).first()
             if not link:
-                return service_response(404, "Link not found", "warning", None)
+                return service_response(HTTPStatus.NOT_FOUND, "Link not found", "warning", None)
 
-            if not FamilyService.family_belongs_to_user(family_id=link.family_id, user_id=current_user.user_id):
-                return service_response(403, "You do not have permission to delete this link", "danger", None)
+            if not self.family_service.family_belongs_to_user(family_id=link.family_id, user_id=current_user.user_id):
+                return service_response(
+                    HTTPStatus.FORBIDDEN,
+                    "You do not have permission to delete this link",
+                    "danger",
+                    None)
 
-            db.session.delete(link)
-            db.session.commit()
-            return service_response(200, "Link deleted successfully", "success", None)
+            self.db.delete(link)
+            self.db.commit()
+            return service_response(HTTPStatus.OK, "Link deleted successfully", "success", None)
         except Exception as e:
-            db.session.rollback()
+            self.db.rollback()
             # Todo: log the error
-            return service_response(500, "Something went wrong", "danger", None)
+            return service_response(HTTPStatus.INTERNAL_SERVER_ERROR,
+                                    "Something went wrong",
+                                    "danger",
+                                    None)
