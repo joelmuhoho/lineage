@@ -2,7 +2,7 @@ import pytest
 from app import create_app
 from app.extensions import db as _db
 from config import TestConfig
-from app.models import Family, User, Event
+from app.models import Family, User, Event, Link
 from datetime import datetime
 
 
@@ -187,6 +187,23 @@ def test_event_1(session, test_family_1):
     session.commit()
 
 @pytest.fixture
+def test_link_1(session, test_family_1):
+    """
+    A pytest fixture for creating and managing a test Link object in the test database.
+
+    Yields
+    ------
+    Link
+        The Link object created and added to the database session for testing purposes.
+    """
+    link = Link(link="https://joelmuhoho.com", family_id=test_family_1.family_id)
+    session.add(link)
+    session.commit()
+    yield link
+    session.delete(link)
+    session.commit()
+
+@pytest.fixture
 def test_user_and_family(test_user_1, test_family_1, session):
     """
     Provides a pytest fixture that associates a test user with a test family and prepares it
@@ -208,13 +225,69 @@ def test_user_and_family(test_user_1, test_family_1, session):
 
 @pytest.fixture
 def test_user_with_one_family(test_user_1, test_family_1, session):
+    """
+    Fixture providing a test user associated with a single family. This fixture links
+    the provided family instance to the test user by setting the appropriate user ID,
+    commits the session changes, and yields the resulting user instance. It is intended
+    to simplify testing scenarios where a user needs to be associated with exactly one
+    family in the database.
+
+    Args:
+        test_user_1: A pytest fixture providing a test user instance.
+        test_family_1: A pytest fixture providing a family instance.
+        session: A pytest fixture providing the database session.
+
+    Yields:
+        The test user instance that is associated with the given family.
+    """
     test_family_1.user_id = test_user_1.user_id
     session.commit()
     yield test_user_1
 
 @pytest.fixture
 def test_user_with_two_families(test_user_1, test_family_1, test_family_2, session):
+    """
+    Fixture for creating a test user associated with two families in the test database.
+
+    The fixture assigns the same user ID to two test family objects and commits the changes
+    to the provided database session. This simulates a scenario where a user is associated with
+    two different families. The modified user object is yielded for use in tests.
+
+    Args:
+        test_user_1 (TestUser): A test user object to associate with test families.
+        test_family_1 (TestFamily): A test family object to associate with the user.
+        test_family_2 (TestFamily): Another test family object to associate with the user.
+        session (Session): A database session used to commit the changes.
+
+    Yields:
+        TestUser: The test user object with associations to the two test families.
+    """
     test_family_1.user_id = test_user_1.user_id
     test_family_2.user_id = test_user_1.user_id
     session.commit()
     yield test_user_1
+
+@pytest.fixture
+def test_family_with_a_link(test_family_1, test_link_1, session):
+    """
+    Creates and yields a test family object with an associated link. The link
+    is appended to the test family, and the changes are committed to the session
+    before yielding. This fixture is utilized for testing purposes to simulate
+    a family object containing relevant links.
+
+    Parameters:
+    test_family_1: TestFamily
+        A test family object used for associating with a link in the fixture.
+    test_link_1: TestLink
+        A test link object that is appended to the test family.
+    session: Session
+        A session object that handles database operations and commits changes.
+
+    Yields:
+    TestFamily
+        The test family object with an associated link.
+
+    """
+    test_family_1.links.append(test_link_1)
+    session.commit()
+    yield test_family_1
