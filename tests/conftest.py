@@ -207,6 +207,12 @@ def test_user_and_family(test_user_1, test_family_1, session):
     yield test_user_1, test_family_1
 
 @pytest.fixture
+def test_user_with_one_family(test_user_1, test_family_1, session):
+    test_family_1.user_id = test_user_1.user_id
+    session.commit()
+    yield test_user_1
+
+@pytest.fixture
 def test_user_with_two_families(test_user_1, test_family_1, test_family_2, session):
     test_family_1.user_id = test_user_1.user_id
     test_family_2.user_id = test_user_1.user_id
