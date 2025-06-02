@@ -68,7 +68,7 @@ class FamilyService:
         except Exception as e:
             self.db.rollback()
             # Todo: log the error
-            return service_response(500, "Something went wrong", "error", None)
+            return service_response(500, "Error creating family", "error", None)
 
     def family_belongs_to_user(self, family_id: int, user_id: int) -> bool:
         """
@@ -105,4 +105,4 @@ class FamilyService:
         except Exception as e:
             self.db.rollback()
             # Todo: log the error
-            return service_response(500, "Something went wrong", "error", None)
+            return service_response(500, "Error deleting family", "error", None)
