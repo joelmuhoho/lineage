@@ -6,6 +6,7 @@ from app.services.service_base import service_response
 from flask_login import current_user
 from typing import Tuple, Union, Optional
 from http import HTTPStatus
+from sqlalchemy.exc import SQLAlchemyError
 
 class LinkService:
 
@@ -58,32 +59,49 @@ class LinkService:
             )
 
     def delete_link(self, link_id: int) -> Tuple[dict, int]:
-        """
-        Deletes a link.
-        Args:
-            link_id: The id of the link to delete.
-        Returns:
-            Tuple[dict, int]: Response containing status and message.
-        """
+
+        if not current_user or  not current_user.is_authenticated:
+            return service_response(
+                HTTPStatus.UNAUTHORIZED,
+                "Authentication required to delete links",
+                "danger",
+                None
+            )
         try:
-            link = db.session.query(Link).filter_by(link_id=link_id).first()
+            link = self.db.query(Link).filter_by(link_id=link_id).first()
             if not link:
                 return service_response(HTTPStatus.NOT_FOUND, "Link not found", "warning", None)
-
-            if not self.family_service.family_belongs_to_user(family_id=link.family_id, user_id=current_user.user_id):
+            
+            if not self.family_service.family_belongs_to_user(
+                family_id=link.family_id, 
+                user_id=current_user.user_id
+            ):
                 return service_response(
                     HTTPStatus.FORBIDDEN,
                     "You do not have permission to delete this link",
                     "danger",
-                    None)
+                    None
+                )
 
             self.db.delete(link)
             self.db.commit()
             return service_response(HTTPStatus.OK, "Link deleted successfully", "success", None)
+            
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            # logger.error(f"Database error while deleting link {link_id}: {str(e)}")
+            return service_response(
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+                "Database error occurred while deleting link",
+                "danger",
+                None
+            )
         except Exception as e:
             self.db.rollback()
-            # Todo: log the error
-            return service_response(HTTPStatus.INTERNAL_SERVER_ERROR,
-                                    "Something went wrong",
-                                    "danger",
-                                    None)
+            # logger.error(f"Unexpected error while deleting link {link_id}: {str(e)}")
+            return service_response(
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+                "Unexpected error while deleting link",
+                "danger",
+                None
+            )
