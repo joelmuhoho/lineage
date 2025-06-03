@@ -35,7 +35,7 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    SQLALCHEMY_ECHO = True  # Log SQL queries
+    SQLALCHEMY_ECHO = os.getenv("SQLALCHEMY_ECHO")  # Log SQL queries
 
 class TestConfig(Config):
     TESTING = True
