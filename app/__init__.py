@@ -31,6 +31,7 @@ def create_app(config_class=DevelopmentConfig):
     from .user import bp as user_bp
     from .member import bp as member_bp
     from .error import bp as error_bp
+    from .link import bp as link_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
@@ -39,6 +40,7 @@ def create_app(config_class=DevelopmentConfig):
     app.register_blueprint(user_bp)
     app.register_blueprint(member_bp)
     app.register_blueprint(error_bp)
+    app.register_blueprint(link_bp)
 
     with app.app_context():
         db.create_all()
