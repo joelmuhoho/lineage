@@ -94,15 +94,15 @@ class MemberService:
             current_member = data.get('data')
 
             siblings = self.db.query(Member).where(
-                Member.mother is not None,
+                Member.mother != "Null",
                 Member.mother == current_member.mother,
-                Member.father is not None,
+                Member.father != "Null",
                 Member.father == current_member.father,
                 Member.member_id != current_member.member_id,
             ).order_by(Member.birthdate).all()
 
             if not siblings:
-                return service_response(200, "No siblings found", "warning", None)
+                return service_response(404, "No siblings found", "warning", None)
             return service_response(200, "Siblings retrieved successfully", "success", siblings)
         except Exception as e:
             # TODO: log error
@@ -134,7 +134,7 @@ class MemberService:
             ).order_by(Member.birthdate).all()
 
             if not children:
-                return service_response(200, "No children found", "warning", None)
+                return service_response(404, "No children found", "warning", None)
             return service_response(200, "Children retrieved successfully", "success", children)
         except Exception as e:
             # TODO: log error
