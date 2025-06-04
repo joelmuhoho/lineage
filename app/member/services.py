@@ -28,6 +28,8 @@ class MemberService:
             Tuple[dict, int]: A tuple containing a response dictionary with
             status, message, severity, data and the HTTP status code.
         """
+        if not current_user or not current_user.is_authenticated:
+            return service_response(401, "Unauthorized", "danger", None)
         try:
             member = self.db.query(Member).filter_by(member_id=member_id).first()
 
