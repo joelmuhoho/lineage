@@ -1,5 +1,5 @@
+import pytest
 from sqlalchemy.exc import SQLAlchemyError
-
 from app.link.services import LinkService
 from app.models import Link, User, Family
 from http import HTTPStatus
@@ -133,6 +133,8 @@ def test_delete_link(session, test_user_1, test_family_1):
     test_family_1.user_id = test_user_1.user_id
     test_family_1.links.append(link)
     session.commit()
+
+    login_user(test_user_1)
 
     response, status = service.delete_link(link.link_id)
     assert status == HTTPStatus.OK
