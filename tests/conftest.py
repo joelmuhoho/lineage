@@ -227,6 +227,52 @@ def test_member_1(session, test_family_1):
     session.delete(member)
 
 @pytest.fixture
+def test_member_2(session, test_family_1):
+    """
+    Creates and manages a pytest fixture for testing a Member entity associated with a
+    Family entity in the database. This fixture initializes the test data, commits it
+    to the session, yields the created Member instance for use in tests, and cleans
+    up the data after the test execution.
+
+    Args:
+        session: A SQLAlchemy session fixture used for database operations.
+        test_family_1: A pytest fixture providing a Family entity instance for association.
+
+    Yields:
+        Member: An instance of the Member entity created for testing purposes.
+    """
+    member = Member(first_name="member", last_name="two", family_id=test_family_1.family_id)
+    session.add(member)
+    session.commit()
+    yield member
+    session.delete(member)
+
+@pytest.fixture
+def test_member_3(session, test_family_1):
+    """
+    Fixture for setting up and tearing down a test `Member` object in the database.
+
+    This fixture creates a `Member` object associated with a given `Family`, adds
+    it to the database session, and commits the session. After the test is completed,
+    the `Member` object is deleted from the database session. The fixture provides a
+    way to prepare and manage testing of database-related functionality involving
+    `Member` objects.
+
+    Parameters:
+        session: Database session used to handle database operations during the test.
+        test_family_1: A pre-existing `Family` object used to associate the new
+                       `Member` object.
+
+    Yields:
+        Member: The `Member` object created for the test case.
+    """
+    member = Member(first_name="member", last_name="three", family_id=test_family_1.family_id)
+    session.add(member)
+    session.commit()
+    yield member
+    session.delete(member)
+
+@pytest.fixture
 def test_user_and_family(test_user_1, test_family_1, session):
     """
     Provides a pytest fixture that associates a test user with a test family and prepares it
