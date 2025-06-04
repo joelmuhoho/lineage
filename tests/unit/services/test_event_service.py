@@ -1,5 +1,5 @@
 import pytest
-from app.models import User, Family, Event
+from app.models import Event
 from app.event.services import EventService
 from datetime import datetime, timedelta
 from flask_login import login_user
