@@ -2,7 +2,7 @@ import pytest
 from app import create_app
 from app.extensions import db as _db
 from config import TestConfig
-from app.models import Family, User, Event, Link
+from app.models import Family, User, Event, Link, Member
 from datetime import datetime
 
 
@@ -202,6 +202,29 @@ def test_link_1(session, test_family_1):
     yield link
     session.delete(link)
     session.commit()
+
+@pytest.fixture
+def test_member_1(session, test_family_1):
+    """
+    Fixture to create and clean up a test member in the database for testing purposes.
+
+    This fixture initializes a `Member` object with predefined attributes and associates it
+    with a test family provided by `test_family_1`. The object is added to the session and
+    saved in the database. It is provided to the caller for testing and is subsequently
+    deleted to ensure cleanup and prevent test contamination.
+
+    Attributes:
+        session (Session): The database session for operations.
+        test_family_1 (Family): A pre-existing test family associated with the member.
+
+    Yields:
+        Member: The created `Member` instance for temporary use in tests.
+    """
+    member = Member(first_name="member", last_name="one", family_id=test_family_1.family_id)
+    session.add(member)
+    session.commit()
+    yield member
+    session.delete(member)
 
 @pytest.fixture
 def test_user_and_family(test_user_1, test_family_1, session):
