@@ -3,7 +3,8 @@ from flask import render_template, redirect, url_for, flash, request, jsonify, m
 from flask_login import current_user, login_required
 from .forms import MemberForm
 from app.utils.constants import RelationType
-from .services import MemberService, RelationshipService
+from .services import MemberService
+from app.relationship.services import RelationshipService
 from typing import  Dict, Tuple, Union, List
 from app.models import Member
 
@@ -125,6 +126,7 @@ def create_relationship(member_id: int, new_member_id: int, relationship_type: s
         new_member_id,
         relationship_type
     )
+
 @bp.route('/member/<member_id>/spouse', methods=['GET', 'POST'])
 @login_required
 def add_spouse(member_id):
