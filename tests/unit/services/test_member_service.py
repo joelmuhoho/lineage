@@ -1,4 +1,6 @@
 from app.member.services import MemberService
+from app.models import Relationship, Member
+from app.utils.constants import RelationType
 from http import HTTPStatus
 from flask_login import login_user, logout_user
 
@@ -357,7 +359,7 @@ def test_get_member_siblings_error(session, test_user_1, test_member_1, test_mem
 
     def mock_get_member(*args):
         """simulates the get_member method of the MemberService class"""
-        status = 200
+        status = HTTPStatus.OK
         data = test_member_1
         return data, status
 
@@ -375,3 +377,363 @@ def test_get_member_siblings_error(session, test_user_1, test_member_1, test_mem
     assert status == HTTPStatus.INTERNAL_SERVER_ERROR
     assert response["message"] == "Error retrieving siblings"
     assert siblings is None
+
+def test_get_member_children_not_found(session, test_user_1, test_member_1):
+    """
+    Tests the `get_member_children` method when no children are found.
+
+    This test ensures that the `get_member_children` method correctly handles the
+    scenario where a member has no children and returns the appropriate HTTP status
+    and message.
+
+    Parameters
+    ----------
+    session : Session
+        The current database session used for the test.
+    test_user_1 : User
+        A user object used to simulate the logged-in user.
+    test_member_1 : Member
+        A member object associated with the test user's family.
+
+    Notes
+    -----
+    The test associates the logged-in user with the specified member's family,
+    then invokes the service method to retrieve children for the member. It verifies
+    that the method returns an HTTPStatus.NOT_FOUND response and a message
+    indicating no children were found.
+    """
+    # associate current_user(test_user_1) with test_member_1's family
+    test_member_1.family.user_id = test_user_1.user_id
+    session.commit()
+
+    login_user(test_user_1)
+
+    service = MemberService()
+    response, status = service.get_member_children(test_member_1.member_id)
+    children = response["data"]
+    assert status == HTTPStatus.NOT_FOUND
+    assert response["message"] == "No children found"
+    assert children is None
+
+def test_get_member_children(session, test_user_1, test_member_1, test_member_2, test_member_3):
+    """
+    Tests retrieving the children of a specific member through the member service.
+
+    The function prepares the test environment by associating a user and family
+    members appropriately, logs in the user, and verifies that the member service
+    correctly identifies and returns the children associated with a specific
+    member.
+
+    Parameters:
+    session : Session
+        The database session used to interact with the database during the test.
+    test_user_1 : User
+        The test user who is set as the current user for the test case.
+    test_member_1 : Member
+        The member whose children will be fetched during the test.
+    test_member_2 : Member
+        A member who will be set as a child of test_member_1 for the test case.
+    test_member_3 : Member
+        Another member who will be set as a child of test_member_1 for the
+        test case.
+
+    Raises:
+    AssertionError
+        If the retrieved children do not match the expected values, or the
+        response status is not HTTPStatus.OK.
+    """
+    # set current_user (test_user_1) to be in the same family as our members
+    test_member_1.family.user_id = test_user_1.user_id
+    session.commit()
+
+    login_user(test_user_1)
+
+    # associate test_member_2 and test_member_3 with test_member_1 as their father for them to be children of test_member_1
+    test_member_2.father = test_member_1.member_id
+    test_member_3.father = test_member_1.member_id
+    session.commit()
+
+    service = MemberService()
+    response, status = service.get_member_children(test_member_1.member_id)
+    children = response["data"]
+    assert status == HTTPStatus.OK
+    assert len(children) == 2
+    assert test_member_2 in children
+    assert test_member_3 in children
+
+def test_get_member_children_error(session, test_user_1, test_member_1, test_member_2, test_member_3, monkeypatch):
+    """
+    Tests the behavior of the `get_member_children` function in the face of a simulated database error during the
+    retrieval of children of a specific family member.
+
+    The test:
+    - Sets up the test environment by associating a user and their family members.
+    - Mocks the `get_member` method of the `MemberService` class to simulate a successful member retrieval.
+    - Mocks the `query` method of the database service to simulate a database error on children retrieval.
+
+    This test verifies that the `get_member_children` function correctly handles and responds with an appropriate
+    status and data when a database error occurs.
+
+    Args:
+        session: The database session fixture for committing test setup data.
+        test_user_1: A mocked user fixture to act as the current user.
+        test_member_1: A fixture representing the target family member.
+        test_member_2: A fixture representing a family member who is a child of test_member_1.
+        test_member_3: A fixture representing another child of test_member_1.
+        monkeypatch: The pytest monkeypatch fixture for mocking object attributes.
+
+    Raises:
+        Exception: Simulates an error during children retrieval from the database.
+
+    Returns:
+        None
+    """
+    # set current_user (test_user_1) to be in the same family as our members
+    test_member_1.family.user_id = test_user_1.user_id
+    session.commit()
+
+    login_user(test_user_1)
+
+    # associate test_member_2 and test_member_3 with test_member_1 as their father for them to be children of test_member_1
+    test_member_2.father = test_member_1.member_id
+    test_member_3.father = test_member_1.member_id
+    session.commit()
+
+    service = MemberService()
+
+    def mock_get_member(*args):
+        """simulates the get_member method of the MemberService class"""
+        status = HTTPStatus.OK
+        data = test_member_1
+        return data, status
+
+    # mock the get_member method to simulate a successful retrieval of a member (test_member_1)
+    monkeypatch.setattr(service, "get_member", mock_get_member)
+
+    def mock_query(*args):
+        raise Exception("Database error")
+
+    # mock the query method to simulate an error during children retrieval from the database
+    monkeypatch.setattr(service.db, "query", mock_query)
+
+    response, status = service.get_member_children(test_member_1.member_id)
+    children = response["data"]
+    assert status == HTTPStatus.INTERNAL_SERVER_ERROR
+    assert response["message"] == "Error retrieving children"
+    assert children is None
+
+def test_get_member_spouses_not_found(session, test_user_1, test_member_1):
+    """
+    Test for the get_member_spouses method when no spouses are found.
+
+    This test case ensures that when the service is queried for a member's
+    spouses but no spouses exist for the given member, the response
+    is properly crafted with an HTTP status of NOT_FOUND and an appropriate
+    message. It also verifies that the data for spouses is returned as None.
+
+    Parameters:
+        session: The database session fixture used for setting up and rolling
+            back test data during the test execution.
+        test_user_1: The user fixture representing the currently authenticated
+            user in the test case.
+        test_member_1: The member fixture representing the member whose
+            spouses are being queried in the test case.
+
+    Raises:
+        AssertionError: If the expected results including the status, message,
+        or spouses data do not match, the test will fail to assert the behavior
+        of get_member_spouses method.
+    """
+    # associate current_user(test_user_1) with test_member_1's family
+    test_member_1.family.user_id = test_user_1.user_id
+    session.commit()
+
+    login_user(test_user_1)
+
+    service = MemberService()
+    response, status = service.get_member_spouses(test_member_1.member_id)
+    spouses = response["data"]
+    assert status == HTTPStatus.NOT_FOUND
+    assert response["message"] == "No spouses found"
+    assert spouses is None
+
+def test_get_member_spouses(session, test_user_1, test_member_1, test_member_2):
+    """
+    Test the functionality of retrieving spouses for a given family member.
+
+    This test ensures that the `get_member_spouses` method successfully retrieves
+    the spouses associated with a specific member of a family. It validates the
+    response message, status code, and checks that the correct spouse is present
+    in the result.
+
+    Parameters:
+    session : Session
+        The database session used for committing entities and handling transactions.
+    test_user_1 : User
+        The test user who will be set as part of the same family as the test members.
+    test_member_1 : Member
+        The first test family member whose spouses will be retrieved.
+    test_member_2 : Member
+        The second test family member to be associated as a spouse of the first member.
+    """
+    # set current_user (test_user_1) to be in the same family as our members
+    test_member_1.family.user_id = test_user_1.user_id
+    session.commit()
+
+    login_user(test_user_1)
+
+    # associate test_member_2 as the spouse of test_member_1
+    relationship = Relationship(member_id_1=test_member_1.member_id,
+                                member_id_2=test_member_2.member_id,
+                                relationship_type=RelationType.SPOUSE)
+    session.add(relationship)
+    session.commit()
+
+    service = MemberService()
+    response, status = service.get_member_spouses(test_member_1.member_id)
+    spouses = response["data"]
+    assert status == HTTPStatus.OK
+    assert response["message"] == "Spouses retrieved successfully"
+    assert test_member_2 in spouses
+
+def test_get_member_spouses_error(session, test_user_1, test_member_1, test_member_2, monkeypatch):
+    """
+    Tests the error handling of the `get_member_spouses` method when a database error occurs
+    during the retrieval of a member's spouses. Ensures that appropriate error status and
+    message are returned, and no spouse data is retrieved.
+
+    Args:
+        session (SQLAlchemy Session): A database session for handling database commits and queries.
+        test_user_1 (User): A mock user object representing a test user.
+        test_member_1 (Member): The primary mock member object for the test.
+        test_member_2 (Member): The mock member object to be associated as a spouse.
+        monkeypatch (pytest MonkeyPatch): A utility to temporarily replace or mock certain
+            attributes or methods during testing.
+    """
+    # set current_user (test_user_1) to be in the same family as our members
+    test_member_1.family.user_id = test_user_1.user_id
+    session.commit()
+
+    login_user(test_user_1)
+
+    # associate test_member_2 as the spouse of test_member_1
+    relationship = Relationship(member_id_1=test_member_1.member_id,
+                                member_id_2=test_member_2.member_id,
+                                relationship_type=RelationType.SPOUSE)
+    session.add(relationship)
+    session.commit()
+
+    service = MemberService()
+
+    def mock_get_member(*args):
+        """simulates the get_member method of the MemberService class"""
+        status = HTTPStatus.OK
+        data = test_member_1
+        return data, status
+
+    # mock the get_member method to simulate a successful retrieval of a member (test_member_1)
+    monkeypatch.setattr(service, "get_member", mock_get_member)
+
+    def mock_query(*args):
+        raise Exception("Database error")
+
+    # mock the query method to simulate an error during spouses retrieval from the database
+    monkeypatch.setattr(service.db, "query", mock_query)
+
+    response, status = service.get_member_spouses(test_member_1.member_id)
+    spouses = response["data"]
+    assert status == HTTPStatus.INTERNAL_SERVER_ERROR
+    assert response["message"] == "Error retrieving spouses"
+    assert spouses is None
+
+def test_update_member(session, test_user_1, test_member_1):
+    """
+    Tests the update_member functionality in the MemberService class by simulating
+    a scenario where a member's details are updated. This test ensures that the
+    response contains the updated details and the proper status code is returned.
+
+    Parameters:
+        session: Session
+            A database session object used to modify the test database context.
+        test_user_1: User
+            A test user object used to authenticate and represent the current user.
+        test_member_1: Member
+            A test member object representing a member in the same family
+            as the test user.
+
+    Raises:
+        AssertionError: If the member update functionality does not produce
+            expected results, for instance, incorrect status codes or updated details.
+
+    """
+    # assign current_user (test_user_1) to be in the same family as our members
+    test_member_1.family.user_id = test_user_1.user_id
+    session.commit()
+
+    login_user(test_user_1)
+
+    service = MemberService()
+    member_data = {
+        "first_name": "New",
+        "last_name": "Name",
+    }
+    response, status = service.update_member(member_id=test_member_1.member_id, member_data=member_data)
+
+    member = response["data"].member_data
+    assert status == HTTPStatus.OK
+    assert response["message"] == "Member updated successfully"
+    assert member["first_name"] == "New"
+    assert member["last_name"] == "Name"
+
+def test_update_member_error(session, test_user_1, test_member_1, monkeypatch):
+    """
+    Simulates a test case for the `update_member` method in the `MemberService` to handle errors
+    that occur during a database commit operation when updating a member's details. It validates
+    the service's error-handling capabilities when a database error is raised.
+
+    Arguments:
+        session: The database session for performing operations on the test data.
+        test_user_1: A user object representing the current logged-in user in the test.
+        test_member_1: A member object related to the test scenario.
+        monkeypatch: A pytest fixture for dynamically modifying or overriding attributes/methods
+            during testing.
+
+    Raises:
+        Exception: Simulates a database error during the commit operation.
+
+    """
+    # assign current_user (test_user_1) to be in the same family as our members
+    test_member_1.family.user_id = test_user_1.user_id
+    session.commit()
+
+    login_user(test_user_1)
+
+    service = MemberService()
+
+    def mock_get_member(*args):
+        """simulates the get_member method of the MemberService class"""
+        status = HTTPStatus.OK
+        data = test_member_1
+        return data, status
+
+    # mock the get_member method to simulate a successful retrieval of a member (test_member_1)
+    monkeypatch.setattr(service, "get_member", mock_get_member)
+
+    def mock_commit(*args):
+        raise Exception("Database error")
+
+    # mock the commit method to simulate an error during member update from the database
+    monkeypatch.setattr(service.db, "commit", mock_commit)
+
+    member_data = {
+        "first_name": "New",
+        "last_name": "Name",
+    }
+    response, status = service.update_member(member_id=test_member_1.member_id, member_data=member_data)
+
+    assert status == HTTPStatus.INTERNAL_SERVER_ERROR
+    assert response["message"] == "Error updating member"
+    assert response["data"] is None
+
+    # here we are undoing the monkeypatching to prevent other tests or teardown process using commit from failing
+    monkeypatch.undo()
