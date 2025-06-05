@@ -1,5 +1,5 @@
 from app.member.services import MemberService
-from app.models import Relationship, Member
+from app.models import Relationship, Member, Family
 from app.utils.constants import RelationType
 from http import HTTPStatus
 from flask_login import login_user, logout_user
@@ -736,4 +736,76 @@ def test_update_member_error(session, test_user_1, test_member_1, monkeypatch):
     assert response["data"] is None
 
     # here we are undoing the monkeypatching to prevent other tests or teardown process using commit from failing
+    monkeypatch.undo()
+
+def test_delete_member(session, test_user_1):
+    """
+    Tests the deletion of a member from a family using the MemberService.
+
+    This function creates a new family and a corresponding member, logs in the test user,
+    and uses the MemberService to delete the created member. It ensures that the deletion
+    request is successful and validates the response message.
+
+    Parameters:
+        session (Session): Database session used for adding and committing test data.
+        test_user_1 (User): A test user instance used for authentication and association
+        with the family.
+
+    Raises:
+        AssertionError: If the deletion operation fails or if the expected status code
+        or response message does not match.
+    """
+    # create a new family and member
+    family = Family("new_family", test_user_1.user_id)
+    session.add(family)
+    session.commit()
+    member = Member("new_member", "allan", family.family_id)
+    session.add(member)
+    session.commit()
+
+    login_user(test_user_1)
+
+    service = MemberService()
+    response, status = service.delete_member(member.member_id)
+    assert status == HTTPStatus.OK
+    assert response["message"] == "Member deleted successfully"
+
+def test_delete_member_error(session, test_user_1, monkeypatch):
+    """
+    Tests the behavior of the `delete_member` function in `MemberService` when an exception occurs
+    while deleting a member from the database. The test ensures that the appropriate response and
+    HTTP status code are returned when an error is encountered during the deletion process.
+
+    Args:
+        session: The SQLAlchemy database session used to interact with the database during the test.
+        test_user_1: A fixture representing a test user.
+        monkeypatch: pytest's monkeypatch utility is used to dynamically alter attributes or methods.
+
+    Raises:
+        Exception: Simulated database error triggered during the deletion of a member.
+    """
+    # create a new family and member
+    family = Family("new_family", test_user_1.user_id)
+    session.add(family)
+    session.commit()
+    member = Member("new_member", "allan", family.family_id)
+    session.add(member)
+    session.commit()
+
+    login_user(test_user_1)
+
+    service = MemberService()
+
+    def mock_delete(*args):
+        raise Exception("Database error")
+
+    # mock the delete method to simulate an error during member deletion from the database
+    monkeypatch.setattr(service.db, "delete", mock_delete)
+
+    response, status = service.delete_member(member.member_id)
+    assert status == HTTPStatus.INTERNAL_SERVER_ERROR
+    assert response["message"] == "Error deleting member"
+    assert response["data"] is None
+
+    # here we are undoing the monkeypatching to prevent other tests or teardown process using delete from failing
     monkeypatch.undo()
