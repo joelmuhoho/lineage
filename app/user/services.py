@@ -139,7 +139,7 @@ class UserService:
                 else:
                     setattr(user, key, value)
             self.db.commit()
-            return service_response(200, f"{user.name} information has been updated successfully", "success", user)
+            return service_response(200, "User updated successfully", "success", user)
         except Exception as e:
             db.session.rollback()
             print(f"Error updating user: {str(e)}")
