@@ -13,8 +13,8 @@ class RelationshipService:
 
     def create_relationship(self, member_id_1: int, member_id_2: int, relationship_type: RelationType) -> Tuple[dict, int]:
         try:
-            member1 = self.db.query(Member).get(member_id_1)
-            member2 = self.db.query(Member).get(member_id_2)
+            member1 = self.db.get(Member, member_id_1)
+            member2 = self.db.get(Member, member_id_2)
 
             if not member1 or not member2:
                 return service_response(404, "One or both members not found", "warning", None)
