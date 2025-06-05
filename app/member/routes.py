@@ -2,7 +2,7 @@ from . import bp
 from flask import render_template, redirect, url_for, flash, request, jsonify, make_response
 from flask_login import current_user, login_required
 from .forms import MemberForm
-from app.utils.constants import RelationshipConstants, RelationType
+from app.utils.constants import RelationType
 from .services import MemberService, RelationshipService
 from typing import  Dict, Tuple, Union, List
 from app.models import Member
