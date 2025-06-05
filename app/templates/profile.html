@@ -83,7 +83,7 @@
                         <i class="fa fa-clone"></i> Copy Link
                     </button>
                     <!-- delete link -->
-                    <a href="{{ url_for('family.delete_link', link_id=family.links[0].link_id) }}"
+                    <a href="{{ url_for('link.delete_link', link_id=family.links[0].link_id) }}"
                         class="mt-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500">
                         <i class="fa fa-trash"></i> Delete Link
                     </a>
@@ -92,7 +92,7 @@
                 <div class="bg-gray-50 p-4 rounded-lg shadow">
                     <h4 class="text-gray-700 font-semibold">{{ family.name }}'s Link</h4>
                     <p class="text-gray-500 mb-2">No shareable link available for this family.</p>
-                    <a href="{{ url_for('family.create_link', family_id=family.family_id) }}"
+                    <a href="{{ url_for('link.create_link', family_id=family.family_id) }}"
                         class="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500">
                         <i class="fa fa-link"></i> Create Link
                     </a>
