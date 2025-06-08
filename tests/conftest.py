@@ -41,6 +41,20 @@ def db(app):
     _db.session.remove()
     _db.drop_all()
 
+
+@pytest.fixture
+def client(app):
+    """
+    Fixture that creates a test client for making requests in tests.
+
+    Args:
+        app: The Flask application fixture
+
+    Returns:
+        FlaskClient: A test client for making requests
+    """
+    return app.test_client()
+
 @pytest.fixture(scope='function')
 def session(db):
     """
