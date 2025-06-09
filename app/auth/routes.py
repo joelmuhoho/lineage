@@ -54,7 +54,9 @@ def guest():
 
     guest_name, guest_email, guest_password = authenticate_service.get_guest_info()
     if not guest_name or not guest_email or not guest_password:
-        flash("Guest name, email and password are required. Contact admin", 'danger')
+        message = "Guest name, email and password are required. Contact admin"
+        category = 'danger'
+        flash(message, category)
         return redirect(url_for('auth.login'))
 
     data, status = authenticate_service.authenticate(email=guest_email, password=guest_password)
@@ -62,7 +64,6 @@ def guest():
         message, category = data.get('message'), data.get('category')
         flash(message, category)
         return redirect(url_for('auth.login'))
-
     return redirect(url_for('family.index'))
 
 @bp.route('/logout')
