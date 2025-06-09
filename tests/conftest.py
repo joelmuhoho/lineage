@@ -124,6 +124,36 @@ def test_family_2(session):
     session.commit()
 
 @pytest.fixture
+def test_guest_user_1(session, app):
+    """
+    Creates a test fixture that provides a guest user for use in test cases.
+    This fixture sets up a guest user with predefined attributes, adds
+    them to the session, and cleans up by removing the user after the test.
+
+    Parameters:
+        session: Session
+            The database session used for creating, committing, and
+            deleting the guest user.
+        app: Flask
+            The Flask application instance from which the guest user's
+            properties (such as name, email, and password) are retrieved.
+
+    Yields:
+        User
+            The created guest user instance.
+    """
+    guest_user = User(
+        name=app.config['GUEST_NAME'],
+        email=app.config['GUEST_EMAIL'],
+        password=app.config['GUEST_PASSWORD']
+    )
+    session.add(guest_user)
+    session.commit()
+    yield guest_user
+    session.delete(guest_user)
+    session.commit()
+
+@pytest.fixture
 def test_user_1(session):
     """
     Fixture for creating and managing temporary User object for testing purposes.
