@@ -44,7 +44,6 @@ def test_register_post(app, client, session):
 
     """
     # given
-    logout_user()
     user_data = {"name":"New_user",
                  "email":"newuser@mail.com",
                  "password":"newPassword",
