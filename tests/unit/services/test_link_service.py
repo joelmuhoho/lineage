@@ -24,11 +24,14 @@ def test_check_existing_link(test_link_1):
     service = LinkService()
     assert service._check_existing_link(family_id=test_link_1.family_id)
 
-def test_check_existing_link_no_link():
+def test_check_existing_link_no_link(app):
     """
     Tests the `_check_existing_link` method of the LinkService class
     to verify that it returns False when no link exists for the given
     family ID.
+
+    Parameters:
+        app: Flask app instance.
     """
     service = LinkService()
     assert not service._check_existing_link(family_id=17)
@@ -215,7 +218,7 @@ def test_delete_link_not_owned_by_authenticated_user(test_user_1, test_link_1):
     assert response["message"] == "You do not have permission to delete this link"
     assert response["data"] is None
 
-def test_delete_link_database_sqlalchemy_error(session, monkeypatch):
+def test_delete_link_database_sqlalchemy_error(session, test_user_1, monkeypatch):
     """
     Test case for simulating an SQLAlchemy error during the deletion of a link.
 
@@ -227,6 +230,7 @@ def test_delete_link_database_sqlalchemy_error(session, monkeypatch):
         session: Session
             The database session fixture for committing and managing transaction
             states during the test.
+        test_user_1: A user object representing the authenticated user attempting the action.
         monkeypatch: MonkeyPatch
             The mock fixture for replacing components or functions with test-specific
             implementations.
@@ -235,16 +239,18 @@ def test_delete_link_database_sqlalchemy_error(session, monkeypatch):
         SQLAlchemyError: Mocked error to simulate a database issue during the delete
         operation.
     """
-    service = LinkService()
-
-    # associate the link with the family and current_user
-    family = Family(name="family_1", user_id=current_user.user_id)
-    family.user_id = current_user.user_id
+    # associate the link with the family and current_user (test_user_1)
+    family = Family(name="family_1", user_id=test_user_1.user_id)
+    family.user_id = test_user_1.user_id
     session.add(family)
     session.commit()
     link = Link(link="https://www.joelmuhoho.com", family_id=family.family_id)
     session.add(link)
     session.commit()
+
+    login_user(test_user_1)
+
+    service = LinkService()
 
     def mock_delete(*args):
         raise SQLAlchemyError("Database error")
@@ -258,7 +264,9 @@ def test_delete_link_database_sqlalchemy_error(session, monkeypatch):
     assert response["message"] == "Database error occurred while deleting link"
     assert response["data"] is None
 
-def test_delete_link_error(session, monkeypatch):
+    monkeypatch.undo()
+
+def test_delete_link_error(session, test_user_1, monkeypatch):
     """
     Tests the behavior of the `delete_link` method in `LinkService` when an exception is raised during
     link deletion.
@@ -269,6 +277,7 @@ def test_delete_link_error(session, monkeypatch):
     Args:
         session: A fixture that provides a database session for setting up the testing
             environment.
+        test_user_1: A user object representing the authenticated user attempting the action.
         monkeypatch: A fixture that allows overriding attributes, methods, or functions during testing.
 
     Raises:
@@ -276,14 +285,16 @@ def test_delete_link_error(session, monkeypatch):
     """
     service = LinkService()
 
-    # associate the link with the family and current_user
-    family = Family(name="family_1", user_id=current_user.user_id)
-    family.user_id = current_user.user_id
+    # associate the link with the family and current_user (test_user_1)
+    family = Family(name="family_1", user_id=test_user_1.user_id)
+    family.user_id = test_user_1.user_id
     session.add(family)
     session.commit()
     link = Link(link="https://www.joelmuhoho.com", family_id=family.family_id)
     session.add(link)
     session.commit()
+
+    login_user(test_user_1)
 
     def mock_delete(*args):
         raise Exception("Database error")
@@ -296,3 +307,5 @@ def test_delete_link_error(session, monkeypatch):
     assert status == HTTPStatus.INTERNAL_SERVER_ERROR
     assert response["message"] == "Unexpected error while deleting link"
     assert response["data"] is None
+
+    monkeypatch.undo()
