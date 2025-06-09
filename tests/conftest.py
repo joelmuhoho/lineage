@@ -6,7 +6,7 @@ from app.models import Family, User, Event, Link, Member
 from datetime import datetime
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='function')
 def app():
     """
     Fixture that provides an application instance for testing.
@@ -23,7 +23,7 @@ def app():
     with app.app_context():
         yield app
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='function')
 def db(app):
     """
     This fixture sets up a database for use in tests. It initializes the database, creates all
