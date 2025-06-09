@@ -240,7 +240,7 @@ def test_get_event(test_event_1):
     assert response["message"] == "Event retrieved successfully"
     assert response["data"].event_name == event.event_name
 
-def test_get_event_not_found():
+def test_get_event_not_found(app):
     """
     Test case for verifying the behavior of the EventService when attempting to
     retrieve a non-existent event.
@@ -250,7 +250,7 @@ def test_get_event_not_found():
 
     Parameters
     ----------
-    None
+    app: Flask application for request context.
 
     Returns
     -------
