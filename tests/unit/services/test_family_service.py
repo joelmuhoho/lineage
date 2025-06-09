@@ -25,12 +25,15 @@ def test_get_family_by_id(test_family_1):
     assert response['message'] == "Family found"
     assert response['data'] == test_family_1
 
-def test_get_family_by_id_nonexistent():
+def test_get_family_by_id_nonexistent(app):
     """
     Test function for checking the behavior of the get_family_by_id method
     when a family with a nonexistent ID is requested. This test ensures that
     the function returns the correct status and error message for invalid
     input.
+
+    Parameters:
+        app: Flask app instance used for testing.
     """
     service = FamilyService()
     response, status = service.get_family_by_id(17)
@@ -131,13 +134,17 @@ def test_get_user_families_error(test_user_with_two_families, monkeypatch):
     assert response['message'] == "Error retrieving families"
     assert response['data'] is None
 
-def test_create_family():
+def test_create_family(app):
     """
     Tests the creation of a family using the FamilyService.
 
     Provides assertions to validate the successful execution of the create_family
     method, verifying that the expected status code, message, and family name
     are correctly returned.
+
+    Parameters:
+        app: Flask app instance used for testing.
+
     Raises:
         AssertionError: If any of the assertions fail, indicating unexpected
                         behavior in the family creation process.
@@ -148,7 +155,7 @@ def test_create_family():
     assert response['message'] == "Family created successfully"
     assert response['data'].name == "new_family"
 
-def test_create_family_error(monkeypatch):
+def test_create_family_error(app, monkeypatch):
     """
     Tests the behavior of the `create_family` method in the `FamilyService`
     class when the database add operation fails due to an exception.
@@ -159,6 +166,7 @@ def test_create_family_error(monkeypatch):
 
     Parameters
     ----------
+    app: Flask app instance used for testing.
     monkeypatch : pytest.MonkeyPatch
         A fixture provided by pytest to modify or replace the behavior of
         objects or methods during testing.
@@ -242,13 +250,16 @@ def test_delete_family(session):
     assert response['message'] == "Family deleted successfully"
     assert response['data'] is None
 
-def test_delete_non_existing_family():
+def test_delete_non_existing_family(app):
     """
     Test the deletion of a non-existing family and response handling in the FamilyService.
 
     The function tests the `delete_family` method by attempting to delete a
     family that is known to not exist, verifying that the response and status
     returned are correct.
+
+    Parameters:
+        app: Flask app instance used for testing.
     """
     service = FamilyService()
     response, status = service.delete_family(17)
