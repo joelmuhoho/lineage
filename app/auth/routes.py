@@ -98,7 +98,7 @@ def reset_password(token):
     user = User.verify_reset_password_token(app.config['SECRET_KEY'], token)
     if not user:
         flash('Link expired. Request for a new link', 'warning')
-        return redirect(url_for('main.index'))
+        return redirect(url_for('auth.reset_password_request'))
 
     form = ResetPasswordForm()
     if form.validate_on_submit():
