@@ -3,6 +3,8 @@ from app.models import User
 from flask import url_for
 from flask_login import login_user, current_user
 from app.auth.services import AuthService
+from app.user.services import UserService
+from app.services.service_base import service_response
 
 def test_register_get(client, test_user_1):
     """
@@ -307,3 +309,133 @@ def test_reset_password_request_post_invalid_email(client):
     response = client.post(url_for("auth.reset_password_request"), data={"email": "invalid@mail.com"}, follow_redirects=True)
     assert response.status_code == HTTPStatus.OK
     assert b"Check your email for the instructions to reset your password" in response.data
+
+def test_reset_password_token_get_authenticated_user(client, test_user_1):
+    """
+    Performs a test to verify the reset password token functionality and the behavior of the
+    authenticated user when accessing the reset password route.
+
+    Parameters:
+    client : FlaskClient
+        Flask test client used to simulate requests to the application.
+
+    test_user_1 : User
+        A test user instance with associated credentials for the authentication
+        process.
+
+    Raises:
+    AssertionError
+        If the response status code does not match HTTPStatus.OK or if the expected
+        response content is not found in the returned data.
+    """
+    client.post(url_for("auth.login"), data={"email": test_user_1.email, "password": "user1password"}, follow_redirects=True)
+    response = client.get(url_for("auth.reset_password", token="test_token"), follow_redirects=True)
+    assert response.status_code == HTTPStatus.OK
+    assert b"Create Family" in response.data
+
+def test_reset_password_token_get_invalid_token(client, test_user_1):
+    """
+    Tests the behavior of the reset_password endpoint when provided with an invalid token.
+
+    This function verifies that the response status code is correct and that the
+    appropriate error message is displayed when the token provided in the request
+    is invalid or expired.
+
+    Args:
+        client: A fixture providing a test client for making requests to the
+            application.
+        test_user_1: A fixture representing a sample user used for testing.
+
+    Raises:
+        AssertionError: If the response status code or the response data does not
+            meet the expected values.
+    """
+    response = client.get(url_for("auth.reset_password", token="invalid_token"), follow_redirects=True)
+    assert response.status_code == HTTPStatus.OK
+    assert b"Link expired. Request for a new link" in response.data
+    assert b"Reset Password" in response.data
+
+def test_reset_password_token_get_valid_token(client, app, test_user_1):
+    """
+    Tests the retrieval of a reset password page using a valid token.
+
+    This function validates the functionality of accessing the reset password
+    page when a valid reset password token is provided. It ensures that the
+    response has an HTTP status code indicating success and verifies that the
+    correct content is displayed on the password reset page.
+
+    Args:
+        client: A Flask test client to simulate an HTTP request.
+        app: The Flask application instance providing the application context
+            and configuration.
+        test_user_1: A test user object used to generate a valid reset password
+            token.
+
+    Raises:
+        AssertionError: If the response code is not HTTPStatus.OK or the page
+            content does not include the keyword indicating the presence of
+            the new password field.
+    """
+    token = test_user_1.get_reset_password_token(app.config["SECRET_KEY"])
+    response = client.get(url_for("auth.reset_password", token=token), follow_redirects=True)
+    assert response.status_code == HTTPStatus.OK
+    assert b"New password" in response.data
+
+def test_reset_password_token_post(client, app, test_user_1):
+    """
+    This function tests the reset password endpoint by making a POST request
+    with a valid reset token and new password data. It validates the response
+    status, checks that the success message appears, and verifies that the
+    user's password has been updated correctly.
+
+    Args:
+        client (FlaskClient): The test client used to make HTTP requests to the app.
+        app (Flask): The Flask application instance configured for testing.
+        test_user_1 (User): A test user instance for which the password reset functionality
+            is to be tested.
+
+    Raises:
+        AssertionError: If the response status is incorrect, if the success message is
+            not present in the response, or if the password for the test user does not
+            update to the new provided password.
+    """
+    token = test_user_1.get_reset_password_token(app.config["SECRET_KEY"])
+    user_data_to_update = {"password": "newPassword123", "confirm_password": "newPassword123"}
+    response = client.post(url_for("auth.reset_password", token=token), data=user_data_to_update, follow_redirects=True)
+
+    assert response.status_code == HTTPStatus.OK
+    assert b"User updated successfully" in response.data
+    assert test_user_1.check_password("newPassword123")
+
+def test_reset_password_token_post_error(client, app, test_user_1, monkeypatch):
+    """
+    Tests the behavior of the endpoint for resetting a user's password when there is an
+    error updating the user's information. Simulates a server-side failure during the
+    update process and verifies the response to ensure proper error handling and message
+    display.
+
+    Args:
+        client: Flask test client used to simulate HTTP requests.
+        app: Flask application instance providing configuration and context for the request.
+        test_user_1: Test user object on which actions will be simulated during the test.
+        monkeypatch: pytest fixture used to replace or modify the behavior of external
+            dependencies or objects during the test.
+    """
+    def mock_update_user(*args, **kwargs):
+        return service_response(500,
+                                "Something went wrong updating user information",
+                                "error",
+                                None)
+
+    monkeypatch.setattr(UserService, "update_user", mock_update_user)
+
+    token = test_user_1.get_reset_password_token(app.config["SECRET_KEY"])
+    user_data_to_update = {"password": "newPassword123", "confirm_password": "newPassword123"}
+    response = client.post(url_for("auth.reset_password", token=token), data=user_data_to_update, follow_redirects=True)
+
+    assert response.status_code == HTTPStatus.OK
+    assert not test_user_1.check_password("newPassword123")
+    assert b"New password" in response.data
+    assert b"Something went wrong updating user information" in response.data
+
+    monkeypatch.undo()
