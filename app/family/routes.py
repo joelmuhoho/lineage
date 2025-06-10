@@ -1,6 +1,6 @@
 from flask import render_template, redirect, url_for, flash, session
 from flask_login import current_user, login_required
-from . import bp
+from . import family_bp
 from .forms import CreateFamilyForm
 from app.member.forms import MemberForm
 from app.auth.services import AuthService
@@ -8,8 +8,8 @@ from .services import FamilyService
 from app.member.services import MemberService
 
 
-@bp.route('/family/<family_id>')
-@bp.route('/family')
+@login_required
+@family_bp.route('/family')
 def index(family_id=0):
     family_service = FamilyService()
     families = []
@@ -38,7 +38,7 @@ def index(family_id=0):
     return render_template('family.html', families=families)
 
 
-@bp.route('/create-family', methods=['GET', 'POST'])
+@family_bp.route('/create-family', methods=['GET', 'POST'])
 @login_required
 def create_family():
     family_service = FamilyService()
@@ -67,7 +67,7 @@ def create_family():
 
     return render_template('create_family.html', title='Create Family', form=form, memberForm=member_form)
 
-@bp.route('/family/delete/<family_id>')
+@family_bp.route('/family/delete/<family_id>')
 @login_required
 def delete_family(family_id):
     family_service = FamilyService()

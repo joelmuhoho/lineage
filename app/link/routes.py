@@ -1,10 +1,10 @@
-from . import bp
+from . import link_bp
 from flask import flash, redirect, url_for
 from app.family.services import FamilyService
 from .services import LinkService
 from flask_login import login_required, current_user
 
-@bp.route('/create_link/<family_id>', methods=['POST', 'GET'])
+@link_bp.route('/create_link/<family_id>', methods=['POST', 'GET'])
 @login_required
 def create_link(family_id):
     family_service = FamilyService()
@@ -28,7 +28,7 @@ def create_link(family_id):
     return redirect(url_for('user.user_profile'))
 
 
-@bp.route('/delete_link/<link_id>')
+@link_bp.route('/delete_link/<link_id>')
 @login_required
 def delete_link(link_id):
     link_service = LinkService()

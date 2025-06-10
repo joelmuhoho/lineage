@@ -1,5 +1,5 @@
 from flask import Blueprint
 
-bp = Blueprint('link', __name__)
+link_bp = Blueprint('link', __name__)
 
 from app.link import  routes

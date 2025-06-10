@@ -1,5 +1,5 @@
 from flask import Blueprint
 
-bp = Blueprint('member', __name__)
+member_bp = Blueprint('member', __name__)
 
 from app.member import routes

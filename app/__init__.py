@@ -24,14 +24,14 @@ def create_app(config_class=DevelopmentConfig):
         return User.query.get(int(user_id))
 
     # Register blueprints
-    from .main.routes import bp as main_bp
-    from .auth import bp as auth_bp
-    from .family import bp as family_bp
-    from .event import bp as event_bp
-    from .user import bp as user_bp
-    from .member import bp as member_bp
-    from .error import bp as error_bp
-    from .link import bp as link_bp
+    from .main.routes import main_bp
+    from .auth import auth_bp
+    from .family import family_bp
+    from .event import event_bp
+    from .user import user_bp
+    from .member import member_bp
+    from .error import error_bp
+    from .link import link_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)

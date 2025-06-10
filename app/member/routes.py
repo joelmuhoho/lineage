@@ -1,4 +1,4 @@
-from . import bp
+from . import member_bp
 from flask import render_template, redirect, url_for, flash, request, jsonify, make_response
 from flask_login import current_user, login_required
 from .forms import MemberForm
@@ -127,7 +127,7 @@ def create_relationship(member_id: int, new_member_id: int, relationship_type: s
         relationship_type
     )
 
-@bp.route('/member/<member_id>/spouse', methods=['GET', 'POST'])
+@member_bp.route('/member/<member_id>/spouse', methods=['GET', 'POST'])
 @login_required
 def add_spouse(member_id):
     form = MemberForm(add_relative_mode=RelationType.SPOUSE)
@@ -173,7 +173,7 @@ def add_spouse(member_id):
 
     return render_template('add_member.html', title=title, form=form, families=current_user.families, member1=member1)
 
-@bp.route('/member/<member_id>/<spouse_id>/child', methods=['GET', 'POST'])
+@member_bp.route('/member/<member_id>/<spouse_id>/child', methods=['GET', 'POST'])
 @login_required
 def add_child(member_id, spouse_id):
     form = MemberForm(add_relative_mode=RelationType.CHILD)
@@ -229,7 +229,7 @@ def add_child(member_id, spouse_id):
         return redirect(url_for('family.index'))
     return render_template('add_member.html', title='Add child', form=form, families=current_user.families, member1=member1)
 
-@bp.route('/member/<member_id>', methods=['GET'])
+@member_bp.route('/member/<member_id>', methods=['GET'])
 @login_required
 def member_profile(member_id):
     member_service = MemberService()
@@ -260,7 +260,7 @@ def member_profile(member_id):
                            spouses=spouses,
                            children=children)
 
-@bp.route('/update_member/<member_id>', methods=['GET', 'POST'])
+@member_bp.route('/update_member/<member_id>', methods=['GET', 'POST'])
 @login_required
 def update_member(member_id):
     member_service = MemberService()
@@ -290,7 +290,7 @@ def update_member(member_id):
 
     return render_template('update_member.html', title=f'Update {member.first_name} information ', form=form, member=member)
 
-@bp.route('/delete_member/<member_id>')
+@member_bp.route('/delete_member/<member_id>')
 @login_required
 def delete_member(member_id):
     member_service = MemberService()
@@ -301,7 +301,7 @@ def delete_member(member_id):
     return redirect(url_for('family.index'))
 
 # API call
-@bp.route('/member/spouses', methods=['POST', 'GET'])
+@member_bp.route('/member/spouses', methods=['POST', 'GET'])
 @login_required
 def get_spouse():
     data = request.get_json()
@@ -325,7 +325,7 @@ def get_spouse():
     response =  make_response(jsonify(spouses_list, login), 200)
     return response
 
-@bp.route('/member/children', methods=['POST', 'GET'])
+@member_bp.route('/member/children', methods=['POST', 'GET'])
 @login_required
 def get_children():
     data = request.get_json()
@@ -361,7 +361,7 @@ def get_children():
     response =  make_response(jsonify(children_list, login), 200)
     return response
 
-@bp.route('/member/nuclear', methods=['POST', 'GET'])
+@member_bp.route('/member/nuclear', methods=['POST', 'GET'])
 @login_required
 def get_nuclear():
     data = request.get_json()

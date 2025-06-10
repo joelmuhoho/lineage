@@ -1,4 +1,4 @@
-from . import bp
+from . import user_bp
 from flask import render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
 from .forms import EditProfileForm
@@ -7,13 +7,13 @@ from app.services.email_service import sendEmailVerificationLink
 from itsdangerous import URLSafeSerializer
 
 
-@bp.route('/user/profile')
+@user_bp.route('/user/profile')
 @login_required
 def user_profile():
     url_root = request.url_root
     return render_template('profile.html', title='User_Profile', url_root=url_root)
 
-@bp.route('/edit_profile', methods=['GET', 'POST'])
+@user_bp.route('/edit_profile', methods=['GET', 'POST'])
 @login_required
 def edit_profile():
     user_service = UserService()
@@ -36,7 +36,7 @@ def edit_profile():
                            form=edit_profile_form)
 
 
-@bp.route('/user/verify_email/<user_id>')
+@user_bp.route('/user/verify_email/<user_id>')
 @login_required
 def verify_email(user_id):
     user_service = UserService()
@@ -51,7 +51,7 @@ def verify_email(user_id):
     sendEmailVerificationLink(user)
     return redirect(url_for('user.user_profile'))
 
-@bp.route('/verify_email/<token>')
+@user_bp.route('/verify_email/<token>')
 def update_verify_email(token):
     user_service = UserService()
 

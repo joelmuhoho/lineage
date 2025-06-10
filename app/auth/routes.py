@@ -1,13 +1,13 @@
 from flask import render_template, redirect, url_for, flash, request, current_app as app
 from flask_login import logout_user, current_user
-from . import bp
+from . import auth_bp
 from .forms import LoginForm, RegisterForm, ResetPasswordRequestForm, ResetPasswordForm
 from .services import AuthService
 from app.models import User
 from app.user.services import UserService
 from app.services.email_service import send_password_reset_email
 
-@bp.route('/register', methods=['GET','POST'])
+@auth_bp.route('/register', methods=['GET','POST'])
 def register():
     user_service = UserService()
 
@@ -24,7 +24,7 @@ def register():
             return redirect(url_for('auth.login'))
     return render_template('auth/register.html', title='Register', form=form)
 
-@bp.route('/login', methods=['GET', 'POST'])
+@auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('family.index'))
@@ -45,7 +45,7 @@ def login():
         return redirect(next_page)
     return render_template('auth/login.html', title='Login', form=form)
 
-@bp.route('/guest')
+@auth_bp.route('/guest')
 def guest():
     if current_user.is_authenticated:
         return redirect(url_for('family.index'))
@@ -66,12 +66,12 @@ def guest():
         return redirect(url_for('auth.login'))
     return redirect(url_for('family.index'))
 
-@bp.route('/logout')
+@auth_bp.route('/logout')
 def logout():
     logout_user()
     return redirect(url_for('main.index'))
 
-@bp.route('/reset_password_request', methods=['POST', 'GET'])
+@auth_bp.route('/reset_password_request', methods=['POST', 'GET'])
 def reset_password_request():
     if current_user.is_authenticated:
         return redirect(url_for('family.index'))
@@ -90,7 +90,7 @@ def reset_password_request():
                            title='Reset Password', form=form)
 
 
-@bp.route('/reset_password/<token>', methods=['GET', 'POST'])
+@auth_bp.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     if current_user.is_authenticated:
         return redirect(url_for('family.index'))

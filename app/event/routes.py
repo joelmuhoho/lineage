@@ -1,10 +1,10 @@
 from flask import render_template, redirect, url_for, flash, request, session
 from flask_login import current_user, login_required
-from . import bp
+from . import event_bp
 from .forms import AddEventForm
 from .services import EventService
 
-@bp.route('/event/', methods=['POST', 'GET'])
+@event_bp.route('/event/', methods=['POST', 'GET'])
 @login_required
 def add_event():
     families = [family for family in current_user.families]
@@ -34,7 +34,7 @@ def add_event():
         return redirect(url_for('event.get_events', family_id=event.family_id))
     return render_template('add_event.html', title='Add Event', form=form, families=families)
 
-@bp.route('/event/<family_id>', methods=['POST', 'GET'])
+@event_bp.route('/event/<family_id>', methods=['POST', 'GET'])
 @login_required
 def get_events(family_id):
     event_service = EventService()
@@ -51,7 +51,7 @@ def get_events(family_id):
 
     return render_template('events.html', upcomingEvents=upcoming_events, pastEvents=past_events)
 
-@bp.route('/delete/event/<event_id>')
+@event_bp.route('/delete/event/<event_id>')
 @login_required
 def delete_event(event_id):
     event_service = EventService()
@@ -66,7 +66,7 @@ def delete_event(event_id):
     flash(message, category)
     return redirect(url_for('event.get_events', family_id=session.get("current_family_id")))
 
-@bp.route('/edit/event/<event_id>', methods=['GET', 'POST'])
+@event_bp.route('/edit/event/<event_id>', methods=['GET', 'POST'])
 @login_required
 def edit_event(event_id):
     event_service = EventService()
