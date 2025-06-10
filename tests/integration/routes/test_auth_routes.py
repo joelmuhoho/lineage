@@ -1,7 +1,7 @@
 from http import HTTPStatus
 from app.models import User
 from flask import url_for
-from flask_login import login_user, logout_user
+from flask_login import login_user, current_user
 from app.auth.services import AuthService
 
 def test_register_get(client, test_user_1):
@@ -197,3 +197,113 @@ def test_guest_incorrect_credentials(client, test_guest_user_1, monkeypatch):
     assert b"Login" in response.data
 
     monkeypatch.undo()
+
+def test_logout(client, test_user_1):
+    """
+    This function tests the logout functionality by logging in a user,
+    triggering the logout route, and verifying the user has been logged out
+    successfully.
+
+    Args:
+        client: A Flask test client instance used to send HTTP requests to the
+            application.
+        test_user_1: A mock user object representing a test user.
+
+    Raises:
+        AssertionError: If any of the assertions fail during the logout
+            testing process.
+    """
+    login_user(test_user_1)
+
+    assert current_user == test_user_1
+    assert test_user_1.is_authenticated
+
+    response = client.get(url_for("auth.logout"), follow_redirects=True)
+
+    assert response.status_code == HTTPStatus.OK
+    assert b"Login" in response.data
+    assert not b"Log out" in response.data
+
+def test_reset_password_request_get(client):
+    """
+    Tests the GET request to the reset password page.
+
+    This function verifies that the reset password page is
+    accessible via a GET request and checks for the expected
+    content on the page to ensure the correct rendering.
+
+    Args:
+        client: A test client instance for simulating requests
+            to the application.
+
+    Raises:
+        AssertionError: If the response status code is not HTTP OK,
+            or if the expected content is not found in the response.
+
+    Returns:
+        None
+    """
+    response = client.get(url_for("auth.reset_password_request"), follow_redirects=True)
+    assert response.status_code == HTTPStatus.OK
+    assert b"Reset Password" in response.data
+
+def test_reset_password_request_get_authenticated(client, test_user_1):
+    """
+    Tests the reset password request page for an authenticated user.
+
+    This function tests the scenario where an authenticated user tries
+    to access the reset password request page.
+
+    Arguments:
+        client: The test client used to send requests to the application.
+        test_user_1: The test user object used for authenticating the user.
+
+    Returns:
+        None
+    """
+    # log in the user
+    client.post(url_for("auth.login"), data={"email": test_user_1.email, "password": "user1password"}, follow_redirects=True)
+
+    response = client.get(url_for("auth.reset_password_request"), follow_redirects=True)
+    assert response.status_code == HTTPStatus.OK
+    assert b"Create Family" in response.data
+
+def test_reset_password_request_post(client, test_user_1):
+    """
+    Tests the POST request functionality for the password reset request endpoint to ensure
+    that an email with instructions is sent when a valid email is provided.
+
+    Parameters:
+    client : FlaskClient
+        A test client instance used to send mock requests to the application.
+    test_user_1 : User
+        A test user object with a valid email for testing the password reset request.
+
+    Raises:
+    AssertionError
+        If the response status code is not 200 OK.
+        If the success message is not found in the response data.
+    """
+    response = client.post(url_for("auth.reset_password_request"), data={"email": test_user_1.email}, follow_redirects=True)
+    assert response.status_code == HTTPStatus.OK
+    assert b"Check your email for the instructions to reset your password" in response.data
+
+def test_reset_password_request_post_invalid_email(client):
+    """
+    Tests the password reset request functionality with an invalid email input.
+
+    This function validates that the application behaves as expected when
+    a password reset request is made with an email address not linked to
+    any account in the system. It verifies that the correct status code is
+    returned and that the appropriate message is displayed to the user.
+
+    Args:
+        client: Flask test client used for making requests to the application.
+
+    Raises:
+        AssertionError: If the response does not fulfill the expected test
+        conditions.
+    """
+    response = client.post(url_for("auth.reset_password_request"), data={"email": "invalid@mail.com"}, follow_redirects=True)
+    assert response.status_code == HTTPStatus.OK
+    assert b"Check your email for the instructions to reset your password" in response.data
