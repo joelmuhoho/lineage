@@ -37,5 +37,5 @@ class ResetPasswordRequestForm(FlaskForm):
 
 class ResetPasswordForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired(message=PasswordConstants.PasswordRequired)], render_kw={"placeholder": PasswordConstants.PasswordPlaceholder})
-    password2 = PasswordField('Repeat Password', validators=[DataRequired(message=PasswordConstants.ConfirmPasswordRequired), EqualTo('password', message=PasswordConstants.PasswordMatch)], render_kw={"placeholder": PasswordConstants.ConfirmPasswordPlaceholder})
+    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(message=PasswordConstants.ConfirmPasswordRequired), EqualTo('password', message=PasswordConstants.PasswordMatch)], render_kw={"placeholder": PasswordConstants.ConfirmPasswordPlaceholder})
     submit = SubmitField('Save New password')
