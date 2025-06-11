@@ -227,8 +227,9 @@ def test_event_1(session, test_family_1):
     session.add(event)
     session.commit()
     yield event
-    session.delete(event)
-    session.commit()
+    if session.get(Event, event.event_id):
+        session.delete(event)
+        session.commit()
 
 @pytest.fixture
 def test_link_1(session, test_family_1):
