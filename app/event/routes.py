@@ -20,8 +20,8 @@ def add_event():
             event_date=form.date.data,
             event_name=form.name.data,
             family_id=int(request.form.get('family')),
-            event_location=form.location.data,
-            event_description=form.description.data
+            location=form.location.data,
+            description=form.description.data
             )
 
         event, message, category = data.get('data'), data.get('message'), data.get('category')
@@ -34,24 +34,20 @@ def add_event():
         return redirect(url_for('event.get_events', family_id=event.family_id))
     return render_template('add_event.html', title='Add Event', form=form, families=families)
 
-@event_bp.route('/event/<family_id>', methods=['POST', 'GET'])
+@event_bp.route('/event/<family_id>')
 @login_required
 def get_events(family_id):
     event_service = EventService()
 
-    data, status = event_service.get_upcoming_events(family_id)
+    data, _ = event_service.get_upcoming_events(family_id)
     upcoming_events, message, category = data.get('data', []), data.get('message'), data.get('category')
-    if status != 200:
-        flash(message, category)
 
-    data, status = event_service.get_past_events(family_id)
+    data, _ = event_service.get_past_events(family_id)
     past_events, message, category = data.get('data', []), data.get('message'), data.get('category')
-    if status != 200:
-        flash(message, category)
 
     return render_template('events.html', upcomingEvents=upcoming_events, pastEvents=past_events)
 
-@event_bp.route('/delete/event/<event_id>')
+@event_bp.route('/delete/event/<event_id>', methods=["POST"])
 @login_required
 def delete_event(event_id):
     event_service = EventService()
@@ -59,9 +55,6 @@ def delete_event(event_id):
     data, status = event_service.delete_an_event(event_id)
 
     event, message, category = data.get('data'), data.get('message'), data.get('category')
-
-    if status != 200:
-        flash(message, category)
 
     flash(message, category)
     return redirect(url_for('event.get_events', family_id=session.get("current_family_id")))
