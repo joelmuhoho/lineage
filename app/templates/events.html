@@ -35,8 +35,12 @@
                     <div id="dropdown-1" class="absolute right-0 mt-2 w-32 bg-white border rounded-lg shadow-lg hidden">
                         <a href="{{ url_for('event.edit_event', event_id=event.event_id)}}"
                             class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Edit</a>
-                        <a href="{{ url_for('event.delete_event', event_id=event.event_id)}}"
-                            class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Delete</a>
+                        <form action="{{ url_for('event.delete_event', event_id=event.event_id) }}" method="post" class="inline">
+                            <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
+                                Delete
+                            </button>
+                        </form>
+
                     </div>
                 </div>
             </div>
@@ -75,8 +79,11 @@
                     <div id="dropdown-2" class="absolute right-0 mt-2 w-32 bg-white border rounded-lg shadow-lg hidden">
                         <a href="{{ url_for('event.edit_event', event_id=event.event_id)}}"
                             class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Edit</a>
-                        <a href="{{ url_for('event.delete_event', event_id=event.event_id)}}"
-                            class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Delete</a>
+                        <form action="{{ url_for('event.delete_event', event_id=event.event_id) }}" method="post" class="inline">
+                            <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
+                                Delete
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
