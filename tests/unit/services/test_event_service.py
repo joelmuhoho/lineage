@@ -295,6 +295,8 @@ def test_get_event_error(test_event_1, monkeypatch):
     assert response["category"] == "danger"
     assert response["data"] is None
 
+    monkeypatch.undo()
+
 def test_event_belongs_to_current_user(session, test_user_and_family):
     """
     Tests whether an event is associated with a user's family.
