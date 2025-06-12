@@ -66,9 +66,7 @@ def edit_event(event_id):
 
     data, status = event_service.get_event(event_id)
     retrieved_event, message, category = data.get('data'), data.get('message'), data.get('category')
-    print(f"data: {data}")
     if status != 200:
-        print(f"status: {status}")
         flash(message, category)
         return redirect(url_for('event.get_events', family_id=session.get("current_family_id")))
 
