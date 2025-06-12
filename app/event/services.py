@@ -163,4 +163,5 @@ class EventService:
             return service_response(200, "Event updated successfully", "success", event)
         except Exception as e:
             self.db.rollback()
+            self.db.refresh(event)  # Refresh from DB to discard in-memory changes
             return service_response(500, f"Error updating event", "danger", None)
