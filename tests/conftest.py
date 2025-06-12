@@ -232,6 +232,43 @@ def test_event_1(session, test_family_1):
         session.commit()
 
 @pytest.fixture
+def test_event_2(session, test_family_2):
+    """
+    Provides a test fixture for an event object meant for testing purposes.
+
+    This fixture creates an Event object with predefined attributes, adds it
+    to the session, and commits the changes to the database. After the test
+    is completed, the fixture ensures cleanup by deleting the event object
+    from the session and committing the session.
+
+    Parameters:
+        session: Session
+            SQLAlchemy session object used to handle database interactions
+            during the test.
+        test_family_2: Family
+            Predefined family object containing the necessary attributes
+            required for creating the event.
+
+    Yields:
+        Event
+            The event object created within this test fixture.
+
+    This ensures that the database remains in a consistent and clean state
+    during and after test execution.
+    """
+    event = Event(
+        event_date=datetime(24, 4, 1),
+        event_name="event_2",
+        family_id=test_family_2.family_id
+    )
+    session.add(event)
+    session.commit()
+    yield event
+    if session.get(Event, event.event_id):
+        session.delete(event)
+        session.commit()
+
+@pytest.fixture
 def test_link_1(session, test_family_1):
     """
     A pytest fixture for creating and managing a test Link object in the test database.
