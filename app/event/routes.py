@@ -65,12 +65,14 @@ def edit_event(event_id):
     event_service = EventService()
 
     data, status = event_service.get_event(event_id)
-    event, message, category = data.get('data'), data.get('message'), data.get('category')
+    retrieved_event, message, category = data.get('data'), data.get('message'), data.get('category')
+    print(f"data: {data}")
     if status != 200:
+        print(f"status: {status}")
         flash(message, category)
         return redirect(url_for('event.get_events', family_id=session.get("current_family_id")))
 
-    if not event_service.event_belongs_to_current_user(event, current_user):
+    if not event_service.event_belongs_to_current_user(retrieved_event, current_user):
         flash('You are not authorized to edit this event', 'danger')
         return redirect(url_for('event.get_events', family_id=session.get("current_family_id")))
 
@@ -78,20 +80,18 @@ def edit_event(event_id):
 
     if form.validate_on_submit():
         data, status = event_service.update_event(
-            event = event,
+            event = retrieved_event,
             event_date=form.date.data,
             event_name=form.name.data,
-            event_location=form.location.data,
-            event_description=form.description.data
+            location=form.location.data,
+            description=form.description.data
         )
-        event, message, category = data.get('data'), data.get('message'), data.get('category')
-
+        updated_event, message, category = data.get('data'), data.get('message'), data.get('category')
         if status != 200:
-            flash(message, category)
-            return render_template('edit_event.html', title='Update Event details', event=event, form=form)
+            updated_event = retrieved_event
         flash(message, category)
-        return redirect(url_for('event.get_events', family_id=event.family_id))
+        return redirect(url_for('event.get_events', family_id=updated_event.family_id))
 
-    form.description.data = event.description
-    return render_template('edit_event.html', title='Update Event details', event=event, form=form)
+    form.description.data = retrieved_event.description
+    return render_template('edit_event.html', title='Update Event details', event=retrieved_event, form=form)
 
