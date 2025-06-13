@@ -15,7 +15,7 @@ class Member(db.Model):
     member_id: Mapped[int] = db.Column(db.Integer, primary_key=True)
     first_name: Mapped[str] = db.Column(db.String(50), nullable=False)
     last_name: Mapped[str] = db.Column(db.String(50), nullable=False)
-    gender: Mapped[str] = db.Column(db.String(10))
+    gender: Mapped[Gender] = db.Column(db.String(10))
     birthdate: Mapped[date] = db.Column(db.Date)
     deathdate: Mapped[Optional[date]] = db.Column(db.Date)
     alive: Mapped[bool] = db.Column(db.Boolean, default=True)
@@ -49,7 +49,7 @@ class Member(db.Model):
     )
 
     def __init__(self, first_name: str, last_name: str, family_id: int,
-                 gender: Gender = None, birthdate: date = None,
+                 gender: Gender, birthdate: date = None,
                  deathdate: Optional[date] = None, alive: Optional[bool] = None,
                  root: bool = False, mother: Optional[int] = None,
                  father: Optional[int] = None, user_id: Optional[int] = None) -> None:
@@ -71,7 +71,7 @@ class Member(db.Model):
         self.first_name = first_name
         self.last_name = last_name
         self.family_id = family_id
-        self.gender = gender.value if gender else None
+        self.gender = gender
         self.birthdate = birthdate
         self.deathdate = deathdate
         self.alive = False if deathdate else True if alive is None else alive
@@ -113,15 +113,20 @@ class Member(db.Model):
             raise ValueError(f"Invalid gender value: {self.gender}")
 
         # Validate parent-child relationship
-        if self.birthdate and (self.mother or self.father):
-            parent_query = db.session.query(Member).filter(
-                Member.member_id.in_(
-                    [self.mother, self.father] if self.mother and self.father else [self.mother or self.father])
-            )
-            for parent in parent_query:
-                if parent.birthdate and parent.birthdate >= self.birthdate:
-                    raise ValueError(f"Parent {parent.full_name} cannot be younger than child")
+        if self.father and self.mother and self.father == self.mother:
+            raise ValueError("Child Member cannot have the same Person as father and mother")
 
+        if self.father and self.mother:
+            father = db.session.get(Member, self.father)
+            mother = db.session.get(Member, self.mother)
+            if self.age > father.age:
+                raise ValueError(f"Child {self.full_name}, of Birth-date:{self.birthdate} and Age:{self.age} cannot be\n"
+                                 f"older than Father: {father.full_name}, of Birth-date:{father.birthdate}\n"
+                                 f"and Age:{father.age}")
+            if self.age > mother.age:
+                raise ValueError(f"Child {self.full_name}, of Birth-date:{self.birthdate} and Age:{self.age} cannot be\n"
+                                 f"older than Mother: {mother.full_name}, of Birth-date:{mother.birthdate}\n"
+                                 f"and Age:{mother.age}")
 
     def to_dict(self, access_level: str = 'family') -> Dict[str, Any]:
         """
