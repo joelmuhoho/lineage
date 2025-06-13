@@ -3,12 +3,15 @@ from app.models import Member, Relationship
 from app.services.service_base import service_response
 from flask_login import current_user
 from typing import Tuple
+from app.family.services import FamilyService
+import traceback
 
 class MemberService:
     """Service class for managing family members."""
 
     def __init__(self, db_session=None):
         self.db = db.session or db_session
+        self.family_service = FamilyService()
 
     def get_member(self, member_id: int) -> Tuple[dict, int]: #TODO: get multiple members by id in a list [id1, id2, id3] -> [member1, member2, member3]
         """
@@ -70,10 +73,77 @@ class MemberService:
             self.db.add(new_member)
             self.db.commit()
             return service_response(201, "Member created successfully", "success", new_member)
+        except ValueError as e:
+            self.db.rollback()
+            # TODO: log error
+            print(f"Error creating member: {str(e)}")
+            error_message = traceback.format_exc()
+            print(f"Traceback: {error_message}")
+            return service_response(500, str(e), "danger", None)
         except Exception as e:
             self.db.rollback()
             # TODO: log error
+            print(f"Error creating member: {str(e)}")
+            error_message = traceback.format_exc()
+            print(f"Traceback: {error_message}")
             return service_response(500, "Error creating member", "danger", None)
+
+    def create_root_member(self, **member_data):
+        """
+        Creates and adds a root member to a family in the database based on provided member data. It ensures that the
+        family does not already have a root member and that the "root" attribute is set correctly. If the operation
+        fails, the associated family is deleted, and the database transaction is rolled back.
+
+        Parameters
+        ----------
+        **member_data: dict
+            Keyword arguments representing member data, including family ID and root status.
+
+        Returns
+        -------
+        dict
+            A structured service response indicating the status of the operation, including an HTTP status code,
+            message, category, and either the created member object or None.
+
+        Raises
+        ------
+        Exception
+            If the database transaction for creating a root member encounters any errors.
+
+        Notes
+        -----
+        - The family must exist prior to creating its root member, as it ensures the presence of the family ID.
+        - If a root member already exists in the family, the function will not create a new one and returns an
+          appropriate service response instead.
+        - Logs the error message upon exceptions and rollbacks the database session.
+        """
+        try:
+            # confirm family was created successful member_data["family_id"] should not be none
+            if "family_id" in member_data and member_data.get("family_id"):
+                # also make sure the family does not have a root member already
+                root_member = self.db.query(Member).filter_by(family_id=member_data.get("family_id"), root=True).first()
+                if root_member:
+                    return service_response(400, "Family already has a root member", "warning", None)
+
+            # make sure the root value is true and if not set to true
+            if "root" in member_data and  not member_data.get("root"):
+                member_data["root"] = True
+
+            root_member = Member(**member_data)
+            self.db.add(root_member)
+            self.db.commit()
+            return service_response(201, "Root member created successfully", "success", root_member)
+        except Exception as e:
+            # delete created family since the root member was not created successfully
+            response = self.family_service.delete_family(member_data.get("family_id"))
+            family_data, status_code = response
+            if status_code != 200:
+                message, category = family_data.get("message"), family_data.get("category")
+                return service_response(status_code, message, category, None)
+            # TODO: log error
+            print(f"Error creating root member: {str(e)}")
+            self.db.rollback()
+            return service_response(500, "Error creating root member", "danger", None)
 
     def get_member_siblings(self, member_id: int) -> Tuple[dict, int]:
         """
