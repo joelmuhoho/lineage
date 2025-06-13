@@ -3,37 +3,27 @@ from flask_login import current_user, login_required
 from . import family_bp
 from .forms import CreateFamilyForm
 from app.member.forms import MemberForm
-from app.auth.services import AuthService
 from .services import FamilyService
 from app.member.services import MemberService
 
-
-@login_required
 @family_bp.route('/family')
-def index(family_id=0):
+@login_required
+def index():
     family_service = FamilyService()
     families = []
-    if not family_id == 0:
-        AuthService.set_current_family_id(family_id)
-
-        current_family_id = session.get("current_family_id")
-        if current_family_id is not None:
-            data, status = family_service.get_family_by_id(current_family_id)
-            family, message, category = data.get('data'), data.get('message'), data.get('category')
-            if status != 200:
-                flash(message, category)
-            elif not family:
-                flash(message, category)
-            else:
-                families = [family]
-
-    elif current_user.is_authenticated:
+    if current_user.is_authenticated:
         data, status = family_service.get_user_families(current_user.user_id)
-        families, message, category = data.get('data'), data.get('message'), data.get('category')
         if status != 200:
+            message, category = data.get('message'), data.get('category')
             flash(message, category)
-        elif not families:
+        families = data.get('data')
+    elif "current_family_id" in session:
+        current_family_id = session.get("current_family_id")
+        data, status = family_service.get_family_by_id(current_family_id)
+        if status != 200:
+            message, category = data.get('message'), data.get('category')
             flash(message, category)
+        families.append(data.get('data'))
 
     return render_template('family.html', families=families)
 
@@ -47,13 +37,16 @@ def create_family():
     member_service = MemberService()
 
     if form.validate_on_submit() and member_form.validate_on_submit():
-        data, status = family_service.create_family(form.name.data, current_user.user_id)
-        family, message, category = data.get('data'), data.get('message'), data.get('category')
-        if status != 201:
+        response = family_service.create_family(form.name.data, current_user.user_id)
+        family_data, status_code = response
+        if status_code != 201:
+            message, category = family_data.get('message'), family_data.get('category')
             flash(message, category)
             return redirect(url_for('family.index'))
 
-        data, status = member_service.create_member(
+        family = family_data.get('data')
+
+        response = member_service.create_root_member(
             first_name=member_form.first_name.data,
             last_name=member_form.last_name.data,
             birthdate=member_form.birthdate.data,
@@ -63,6 +56,10 @@ def create_family():
             deathdate=member_form.deathdate.data,
             root=True
         )
+        member_data, status_code = response
+        if status_code != 201:
+            message, category = member_data.get('message'), member_data.get('category')
+            flash(message, category)
         return redirect(url_for('family.index'))
 
     return render_template('create_family.html', title='Create Family', form=form, memberForm=member_form)
