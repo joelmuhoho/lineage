@@ -35,9 +35,6 @@ def retrieve_member(member_id: int, call_type: Union[str, None] =None) -> Union[
     data, status = member_service.get_member(member_id)
     if call_type == "api":
         return data, status
-    elif status != 200:
-        message, category = data.get('message'), data.get('category')
-        flash(message, category)
     member = data.get('data')
     return member
 
@@ -63,9 +60,6 @@ def retrieve_spouses(member_id: int, call_type: Union[str, None] = None) -> Unio
     data, status = member_service.get_member_spouses(member_id)
     if call_type == "api":
         return data, status
-    elif status != 200:
-        message, category = data.get('message'), data.get('category')
-        flash(message, category)
     spouses = data.get('data')
     return spouses
 
@@ -98,13 +92,10 @@ def retrieve_children(member_id: int, call_type: Union[str, None] = None) -> Uni
     data, status = member_service.get_member_children(member_id)
     if call_type == "api":
         return data, status
-    elif status != 200:
-        message, category = data.get('message'), data.get('category')
-        flash(message, category)
     children = data.get('data')
     return children
 
-def create_relationship(member_id: int, new_member_id: int, relationship_type: str) -> Tuple[Dict, int]:
+def create_relationship(member_id: int, new_member_id: int, relationship_type: RelationType) -> Tuple[Dict, int]:
     """
     Creates a relationship between two members using the specified relationship type.
 
@@ -150,18 +141,18 @@ def add_spouse(member_id):
             "alive": eval(form.alive.data),
             "deathdate": form.deathdate.data
         }
-        data, status = member_service.create_member(member_data=spouse_data)
+        data, status = member_service.create_member(**spouse_data)
         if status != 201:
             message, category = data.get('message'), data.get('category')
             flash(message, category)
             return redirect(url_for('family.index'))
 
-        new_member, message, category = data.get('data')
+        new_member = data.get('data')
 
         data, status = create_relationship(
             member1.member_id,
             new_member.member_id,
-            form.relationship.data
+            RelationType.SPOUSE
         )
         message, category = data.get('message'), data.get('category')
         if status != 201:
@@ -177,8 +168,8 @@ def add_spouse(member_id):
 @login_required
 def add_child(member_id, spouse_id):
     form = MemberForm(add_relative_mode=RelationType.CHILD)
-    father: str
-    mother: str
+    father_id: int
+    mother_id: int
     member_service: MemberService = MemberService()
 
     member1  = retrieve_member(member_id)
@@ -190,13 +181,13 @@ def add_child(member_id, spouse_id):
         return redirect(url_for('family.index'))
 
     if member1.gender == 'Male':
-        father = member1
-        mother = spouse
+        father_id = member1.member_id
+        mother_id = spouse.member_id
     else:
-        mother = member1
-        father = spouse
+        mother_id = member1.member_id
+        father_id = spouse.member_id
 
-    family_id = member1.family_id
+    family_id = int(member1.family_id)
 
     if form.validate_on_submit():
         child_data = {
@@ -207,10 +198,10 @@ def add_child(member_id, spouse_id):
             "family_id": family_id,
             "alive": eval(form.alive.data),
             "deathdate": form.deathdate.data,
-            "father": father,
-            "mother": mother,
+            "father": father_id,
+            "mother": mother_id
         }
-        data, status = member_service.create_member(member_data=child_data)
+        data, status = member_service.create_member(**child_data)
 
         if status != 201:
             message, category = data.get('message'), data.get('category')
@@ -219,7 +210,7 @@ def add_child(member_id, spouse_id):
 
         new_member = data.get('data')
 
-        data, status = create_relationship(spouse.member_id, new_member.member_id, form.relationship.data)
+        data, status = create_relationship(spouse.member_id, new_member.member_id, RelationType.CHILD)
         if status != 201:
             message, category = data.get('message'), data.get('category')
             flash(message, category)
@@ -241,11 +232,7 @@ def member_profile(member_id):
     mother = retrieve_member(member.mother)
     father = retrieve_member(member.father)
 
-    data, status = member_service.get_member_siblings(member_id)
-    if status != 200:
-        message, category = data.get('message'), data.get('category')
-        flash(message, category)
-
+    data, _ = member_service.get_member_siblings(member_id)
     siblings = data.get('data')
     # TODO: include step siblings
 
