@@ -11,7 +11,7 @@ def test_member_initialization():
         first_name="John",
         last_name="Doe",
         family_id=1,
-        gender=Gender.MALE,
+        gender=Gender.MALE.value,
         birthdate=date(1990, 1, 1),
         alive=True,
         root=True,
@@ -35,7 +35,7 @@ def test_member_full_name():
     Test the full_name property of a Member instance.
     Verifies that the full name is correctly generated.
     """
-    member = Member(first_name="Jane", last_name="Smith", family_id=1)
+    member = Member(first_name="Jane", last_name="Smith", family_id=1, gender=Gender.MALE.value)
     assert member.full_name == "Jane Smith"
 
 def test_member_age_calculation():
@@ -43,7 +43,13 @@ def test_member_age_calculation():
     Test the age calculation of a Member instance.
     Verifies that the age is calculated correctly based on birthdate and deathdate.
     """
-    member_alive = Member(first_name="John", last_name="Doe", family_id=1, birthdate=date(1990, 1, 1))
+    member_alive = Member(
+        first_name="John",
+        last_name="Doe",
+        family_id=1,
+        birthdate=date(1990, 1, 1),
+        gender=Gender.FEMALE.value
+    )
     assert member_alive.age == date.today().year - 1990
 
     member_deceased = Member(
@@ -52,6 +58,7 @@ def test_member_age_calculation():
         family_id=1,
         birthdate=date(1980, 1, 1),
         deathdate=date(2020, 1, 1),
+        gender=Gender.MALE.value
     )
     assert member_deceased.age == 40
 
@@ -61,7 +68,7 @@ def test_member_validation_birthdate_in_future():
     """
     future_date = date.today().replace(year=date.today().year + 1)
     with pytest.raises(ValueError, match="Birth date cannot be in the future"):
-        Member(first_name="Jane", last_name="Doe", family_id=1, birthdate=future_date)
+        Member(first_name="Jane", last_name="Doe", family_id=1, birthdate=future_date, gender=Gender.OTHER.value)
 
 def test_member_validation_death_before_birth():
     """
@@ -73,5 +80,6 @@ def test_member_validation_death_before_birth():
             last_name="Doe",
             family_id=1,
             birthdate=date(1990, 1, 1),
-            deathdate=date(1989, 12, 31)
+            deathdate=date(1989, 12, 31),
+            gender=Gender.FEMALE.value
         )

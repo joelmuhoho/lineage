@@ -2,6 +2,7 @@ from datetime import date
 import pytest
 from app.models.member import Member
 from app.models.relationship import Relationship, RelationType
+from app.utils.constants import Gender
 
 
 def test_relationship_initialization():
@@ -38,8 +39,8 @@ def test_relationship_parent_child_age_validation(session):
     """
     Test that the parent must be older than the child.
     """
-    parent = Member(first_name="John", last_name="Doe", family_id=1, birthdate=date(1980, 1, 1))
-    child = Member(first_name="Jane", last_name="Doe", family_id=1, birthdate=date(2005, 1, 1))
+    parent = Member(first_name="John", last_name="Doe", family_id=1, birthdate=date(1980, 1, 1), gender=Gender.FEMALE.value)
+    child = Member(first_name="Jane", last_name="Doe", family_id=1, birthdate=date(2005, 1, 1), gender=Gender.FEMALE.value)
     session.add_all([parent, child])
     session.commit()
 

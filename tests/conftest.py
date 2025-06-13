@@ -4,6 +4,7 @@ from app.extensions import db as _db
 from config import TestConfig
 from app.models import Family, User, Event, Link, Member
 from datetime import datetime
+from app.utils.constants import Gender
 
 
 @pytest.fixture(scope='function')
@@ -302,7 +303,7 @@ def test_member_1(session, test_family_1):
     Yields:
         Member: The created `Member` instance for temporary use in tests.
     """
-    member = Member(first_name="member", last_name="one", family_id=test_family_1.family_id)
+    member = Member(first_name="member", last_name="one", family_id=test_family_1.family_id, gender=Gender.MALE.value)
     session.add(member)
     session.commit()
     yield member
@@ -323,7 +324,7 @@ def test_member_2(session, test_family_1):
     Yields:
         Member: An instance of the Member entity created for testing purposes.
     """
-    member = Member(first_name="member", last_name="two", family_id=test_family_1.family_id)
+    member = Member(first_name="member", last_name="two", family_id=test_family_1.family_id, gender=Gender.FEMALE.value)
     session.add(member)
     session.commit()
     yield member
@@ -348,7 +349,7 @@ def test_member_3(session, test_family_1):
     Yields:
         Member: The `Member` object created for the test case.
     """
-    member = Member(first_name="member", last_name="three", family_id=test_family_1.family_id)
+    member = Member(first_name="member", last_name="three", family_id=test_family_1.family_id, gender=Gender.OTHER.value)
     session.add(member)
     session.commit()
     yield member

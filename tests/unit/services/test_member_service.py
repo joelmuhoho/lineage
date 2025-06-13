@@ -3,6 +3,7 @@ from app.models import Relationship, Member, Family
 from app.utils.constants import RelationType
 from http import HTTPStatus
 from flask_login import login_user, logout_user
+from app.utils.constants import Gender
 
 def test_get_member_unauthenticated(test_member_1):
     """
@@ -206,6 +207,7 @@ def test_create_member(app):
         first_name="Allan",
         last_name="Kim",
         family_id=1,
+        gender=Gender.MALE.value
     )
 
     assert status == HTTPStatus.CREATED
@@ -759,7 +761,7 @@ def test_delete_member(session, test_user_1):
     family = Family("new_family", test_user_1.user_id)
     session.add(family)
     session.commit()
-    member = Member("new_member", "allan", family.family_id)
+    member = Member("new_member", "allan", family.family_id, gender=Gender.MALE.value)
     session.add(member)
     session.commit()
 
@@ -788,7 +790,7 @@ def test_delete_member_error(session, test_user_1, monkeypatch):
     family = Family("new_family", test_user_1.user_id)
     session.add(family)
     session.commit()
-    member = Member("new_member", "allan", family.family_id)
+    member = Member("new_member", "allan", family.family_id, Gender.FEMALE.value)
     session.add(member)
     session.commit()
 

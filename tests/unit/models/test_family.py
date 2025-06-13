@@ -5,6 +5,8 @@ from app.models.member import Member
 from app.models.user import User
 from datetime import datetime
 import pytest
+from app.utils.constants import Gender
+
 
 def test_family_initialization():
     """
@@ -57,7 +59,7 @@ def test_family_relationships(session):
     session.commit()
 
     event = Event(event_date=datetime(2024, 5, 7, 11, 22), event_name="Family Reunion", family_id=family.family_id)
-    member = Member(first_name="Jane", last_name="Doe", family_id=family.family_id)
+    member = Member(first_name="Jane", last_name="Doe", family_id=family.family_id, gender=Gender.MALE.value)
     link = Link(link="https://joelmhoho.com", family_id=family.family_id)
 
     session.add_all([event, member, link])
@@ -82,7 +84,7 @@ def test_family_cascade_delete_relationships(session):
     session.commit()
 
     event = Event(event_date=datetime(2025, 1, 2, 1, 44), event_name="Birthday Party", family_id=family.family_id)
-    member = Member(first_name="Test", last_name="Member", family_id=family.family_id)
+    member = Member(first_name="Test", last_name="Member", family_id=family.family_id, gender=Gender.FEMALE.value)
     link = Link(link="https://joelmuhoho.com", family_id=family.family_id)
 
     session.add_all([family, event, member, link])
