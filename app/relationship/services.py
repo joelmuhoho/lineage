@@ -30,4 +30,5 @@ class RelationshipService:
         except Exception as e:
             self.db.rollback()
             # TODO: log error
+            print(f"Error creating relationship: {str(e)}")
             return service_response(500, "Error creating relationship", "danger", None)
