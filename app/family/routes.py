@@ -3,27 +3,31 @@ from flask_login import current_user, login_required
 from . import family_bp
 from .forms import CreateFamilyForm
 from app.member.forms import MemberForm
+from app.auth.services import AuthService
 from .services import FamilyService
 from app.member.services import MemberService
 
 @family_bp.route('/family')
+@family_bp.route('/family/<family_id>')
 @login_required
-def index():
+def index(family_id=0):
     family_service = FamilyService()
     families = []
-    if current_user.is_authenticated:
+    if family_id != 0:
+        AuthService.set_current_family_id(family_id)
+        current_family_id = family_id
+        if current_family_id:
+            data, status = family_service.get_family_by_id(current_family_id, current_user.user_id)
+            family, message, category = data.get('data'), data.get('message'), data.get('category')
+            if status != 200:
+                flash(message, category)
+            else:
+                families = [family]
+    elif current_user.is_authenticated:
         data, status = family_service.get_user_families(current_user.user_id)
+        families, message, category = data.get('data'), data.get('message'), data.get('category')
         if status != 200:
-            message, category = data.get('message'), data.get('category')
             flash(message, category)
-        families = data.get('data')
-    elif "current_family_id" in session:
-        current_family_id = session.get("current_family_id")
-        data, status = family_service.get_family_by_id(current_family_id)
-        if status != 200:
-            message, category = data.get('message'), data.get('category')
-            flash(message, category)
-        families.append(data.get('data'))
 
     return render_template('family.html', families=families)
 
