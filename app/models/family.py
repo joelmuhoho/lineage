@@ -72,4 +72,4 @@ class Family(db.Model):
 
     def __repr__(self) -> str:
         """Return string representation of the family."""
-        return f"Family(id={self.family_id}, name='{self.name}')"
+        return f"Family(id={self.family_id}, name='{self.name}', user_id={self.user_id})"
