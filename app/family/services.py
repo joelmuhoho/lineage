@@ -7,22 +7,23 @@ class FamilyService:
     def __init__(self, db_session=None):
         self.db = db.session or db_session
 
-    def get_family_by_id(self, family_id: int) -> Tuple[dict, int]:
+    def get_family_by_id(self, family_id: int, user_id: int = None) -> Tuple[dict, int]:
         """
         Retrieves a family by its id.
 
         Args:
             family_id (int): The id of the family to retrieve.
-
+            user_id (int): The id of user requesting access to family.
         Returns:
             Tuple[dict, int]: A tuple containing a dictionary and HTTP status code.
         """
         try:
             family = self.db.query(Family).filter_by(family_id=family_id).first()
-            if family:
-                return service_response(200, "Family found", "success", family)
-            else:
+            if not family:
                 return service_response(404, "Family not found", "warning", None)
+            elif user_id and family.user_id != user_id:
+                return service_response(403, "You do not have permission to access this family", "danger", None)
+            return service_response(200, "Family found", "success", family)
         except Exception as e:
             # Todo: log the error
             print(str(e))
