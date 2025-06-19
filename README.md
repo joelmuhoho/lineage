@@ -6,9 +6,9 @@ Welcome to Lineage, a digital space dedicated to strengthening family connection
 
 **Project Links:**
 
-- [Lineage](https://lineage.joelmuhoho.tech)
+- [Lineage](https://lineage.joelmuhoho.com/)
 - [Final Project Blog](https://medium.com/@joel_Muhoho/lineage-a-journey-into-family-roots-and-connections-3bc375684455)
-- Author: [Joel Muhoho](https://ke.linkedin.com/in/joel-muhoho-568a407a)
+- Author: [Joel Muhoho](https://www.linkedin.com/in/joelmuhoho/)
 
 ## Installation
 
