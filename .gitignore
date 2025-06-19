@@ -6,3 +6,9 @@ __pycache__
 *tumamail*
 *.db
 *.zip
+/instance
+*db*
+*.xml
+.coverage
+*.iml
+.idea/
