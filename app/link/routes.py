@@ -28,11 +28,24 @@ def create_link():
     return redirect(url_for('user.user_profile'))
 
 
-@link_bp.route('/delete_link/<link_id>')
+@link_bp.route('/delete_link', methods=['POST'])
 @login_required
-def delete_link(link_id):
+def delete_link():
+    link_id = request.form.get('link_id')
+    family_id = request.form.get('family_id')
+    if not link_id:
+        flash('Link id is required', 'info')
+        return redirect(url_for('user.user_profile'))
+    elif not family_id:
+        flash('Family id is required', 'info')
+        return redirect(url_for('user.user_profile'))
+
+
+    link_id = int(link_id)
+    family_id = int(family_id)
+
     link_service = LinkService()
-    data, _ = link_service.delete_link(link_id=link_id)
+    data, _ = link_service.delete_link(link_id=link_id, family_id=family_id, user_id=current_user.user_id)
     message, category = data.get('message'), data.get('category')
 
     flash(message, category)
