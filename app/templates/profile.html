@@ -77,16 +77,23 @@
                     <input type="text" id="link_{{ family.links[0].link_id }}"
                         class="w-full mt-2 p-2 border border-gray-300 rounded-lg"
                         value="{{ url_root }}{{ family.links[0].link }}" readonly>
-                    <button id="copyBtn_{{ family.links[0].link_id }}"
-                        onclick="copyLink('{{ family.links[0].link_id }}')"
-                        class="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 focus:outline-none transition">
-                        <i class="fa fa-clone"></i> Copy Link
-                    </button>
-                    <!-- delete link -->
-                    <a href="{{ url_for('link.delete_link', link_id=family.links[0].link_id) }}"
-                        class="mt-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500">
-                        <i class="fa fa-trash"></i> Delete Link
-                    </a>
+                    <div class="flex justify-between items-center mt-2">
+                        <!-- copy link -->
+                        <button id="copyBtn_{{ family.links[0].link_id }}"
+                            onclick="copyLink('{{ family.links[0].link_id }}')"
+                            class="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 focus:outline-none transition">
+                            <i class="fa fa-clone"></i> Copy Link
+                        </button>
+                        <!-- delete link -->
+                        <form action="{{ url_for('link.delete_link') }}" method="POST">
+                            <input type="hidden" name="link_id" value="{{ family.links[0].link_id }}">
+                            <input type="hidden" name="family_id" value="{{ family.family_id }}">
+                            <button type="submit" class="mt-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500">
+                                <i class="fa fa-trash"></i> Delete Link
+                            </button>
+                        </form>
+                    </div>
+
                 </div>
                 {% else %}
                 <div class="bg-gray-50 p-4 rounded-lg shadow">
