@@ -5,7 +5,9 @@
   /* font-family: "Poppins", sans-serif; */
   /* font-family: "Roboto", sans-serif; */
 }
-
+button{
+  cursor: pointer;
+}
 .tab-active {
   border-bottom: 2px solid #1d4ed8; /* Blue underline for active tab */
 }
