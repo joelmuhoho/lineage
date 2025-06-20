@@ -35,40 +35,45 @@ def index(family_id=0):
 @family_bp.route('/create-family', methods=['GET', 'POST'])
 @login_required
 def create_family():
-    family_service = FamilyService()
-    form = CreateFamilyForm()
+    family_form = CreateFamilyForm()
     member_form = MemberForm()
-    member_service = MemberService()
 
-    if form.validate_on_submit() and member_form.validate_on_submit():
-        response = family_service.create_family(form.name.data, current_user.user_id)
-        family_data, status_code = response
-        if status_code != 201:
-            message, category = family_data.get('message'), family_data.get('category')
-            flash(message, category)
+    if family_form.validate_on_submit() and member_form.validate_on_submit():
+        family_service = FamilyService()
+        response = family_service.create_family(family_form.name.data, current_user.user_id)
+        family_data, family_status_code = response
+        family_message, family_category = family_data.get('message'), family_data.get('category')
+        if family_status_code != 201:
+            flash(family_message, family_category)
             return redirect(url_for('family.index'))
 
         family = family_data.get('data')
 
-        response = member_service.create_root_member(
-            first_name=member_form.first_name.data,
-            last_name=member_form.last_name.data,
-            birthdate=member_form.birthdate.data,
-            gender=member_form.gender.data,
-            family_id=family.family_id,
-            alive=eval(member_form.alive.data),
-            deathdate=member_form.deathdate.data,
-            root=True
-        )
-        member_data, status_code = response
-        if status_code != 201:
-            message, category = member_data.get('message'), member_data.get('category')
-            flash(message, category)
+        root_member_data = {
+            "first_name": member_form.data.get('first_name'),
+            "last_name": member_form.data.get('last_name'),
+            "birthdate": member_form.data.get('birthdate'),
+            "gender": member_form.data.get('gender'),
+            "family_id": family.family_id,
+            "alive": eval(member_form.data.get('alive')),
+            "deathdate": member_form.data.get('deathdate'),
+            "root": True,
+        }
+
+        member_service = MemberService()
+        response = member_service.create_root_member(**root_member_data)
+        member_data, member_status_code = response
+        member_message, member_category = member_data.get('message'), member_data.get('category')
+
+        if family_status_code == 201 and member_status_code == 201:
+            flash(family_message, family_category)
+        flash(member_message, member_category)
+
         return redirect(url_for('family.index'))
 
-    return render_template('create_family.html', title='Create Family', form=form, memberForm=member_form)
+    return render_template('create_family.html', title='Create Family', form=family_form, memberForm=member_form)
 
-@family_bp.route('/family/delete/<family_id>')
+@family_bp.route('/family/delete/<family_id>', methods=["POST"])
 @login_required
 def delete_family(family_id):
     family_service = FamilyService()
