@@ -139,84 +139,63 @@ def test_delete_link(session, test_user_1, test_family_1):
 
     login_user(test_user_1)
 
-    response, status = service.delete_link(link.link_id)
+    response, status = service.delete_link(link_id=link.link_id,
+                                           family_id=test_family_1.family_id,
+                                           user_id=test_user_1.user_id)
+    assert status == HTTPStatus.OK
+    assert response["message"] == "Link deleted successfully"
+    assert response["data"] is None
     assert status == HTTPStatus.OK
     assert response["message"] == "Link deleted successfully"
     assert response["data"] is None
 
-def test_delete_link_unauthorized_user(test_link_1):
+def test_delete_link_unauthorized_user(test_user_1, test_family_1, test_link_1):
     """
-    Tests the behavior of deleting a link when an unauthorized user attempts to perform the action.
-
-    This test simulates the condition where a user is logged out and tries to delete a link.
-    It ensures that the deletion attempt fails with an appropriate unauthorized status
-    and error message.
+    Tests the scenario where an unauthorized user attempts to delete a link. This ensures that the
+    system enforces authorization policies and does not permit unauthorized deletions.
 
     Args:
-        test_link_1: A test link object used for the deletion operation.
+        test_user_1: Mock user object representing the unauthorized user.
+        test_family_1: Mock family object associated with the user's request.
+        test_link_1: Mock link object representing the link intended to be deleted.
 
     Raises:
-        AssertionError: If the service allows unauthorized deletion of a link,
-            or if the expected error response does not match the actual response.
+        AssertionError: If the deletion status is not HTTPStatus.FORBIDDEN or the response
+        contains unexpected data.
     """
     service = LinkService()
-
-    # log the current user out, then try to delete the link, should fail
-    logout_user()
-
-    response, status = service.delete_link(test_link_1.link_id)
-    assert status == HTTPStatus.UNAUTHORIZED
-    assert response["message"] == "Authentication required to delete links"
-    assert response["data"] is None
-
-def test_delete_link_nonexistent_link(test_user_1):
-    """
-    Tests the deletion of a non-existent link using the `delete_link` method of the
-    `LinkService` class.
-
-    This test case ensures that the method returns the appropriate status code and
-    message when attempting to delete a link that does not exist in the database.
-    It also verifies the behavior when the user is logged in, but the link ID
-    does not match any record.
-
-    Attributes:
-        test_user_1 (User): The test user performing the deletion.
-
-    Args:
-        test_user_1: Logged-in user attempting the link deletion.
-
-    Raises:
-        AssertionError: If the status code is not HTTP 404 or the response message
-        does not indicate that the link was not found.
-    """
-    # log in the user in order for them to perform the deletion
-    login_user(test_user_1)
-
-    service = LinkService()
-    response, status = service.delete_link(17)
-    assert status == HTTPStatus.NOT_FOUND
-    assert response["message"] == "Link not found"
-
-def test_delete_link_not_owned_by_authenticated_user(test_user_1, test_link_1):
-    """
-    Tests the scenario where an authenticated user attempts to delete a link they do not own.
-
-    This test ensures that the service prevents a user from deleting a link that is not associated
-    with their family and account. It verifies that the appropriate HTTP status code and response message are
-    returned when this unauthorized action is attempted.
-
-    Arguments:
-        test_user_1: A user object representing the authenticated user attempting the action.
-        test_link_1: A link object representing the link that should not be deleted.
-    """
-    login_user(test_user_1)
-
-    service = LinkService()
-    response, status = service.delete_link(test_link_1.link_id)
-
+    response, status = service.delete_link(link_id=test_link_1.link_id,
+                                           user_id=test_user_1.user_id,
+                                           family_id=test_family_1.family_id,)
     assert status == HTTPStatus.FORBIDDEN
     assert response["message"] == "You do not have permission to delete this link"
     assert response["data"] is None
+
+def test_delete_link_nonexistent_link(test_user_and_family):
+    """
+    Test the deletion of a nonexistent link for a user within a family.
+
+    This function validates the behavior of attempting to delete a link
+    that does not exist for a specific user and family. The test ensures
+    that the system correctly identifies the missing link and returns the
+    appropriate response and status code.
+
+    Args:
+        test_user_and_family: tuple
+            A fixture providing a test user and their associated family object.
+
+    Raises:
+        AssertionError: If the status returned is not HTTPStatus.NOT_FOUND or the
+        message in the response is not "Link not found".
+    """
+    user, family = test_user_and_family
+    # log in the user in order for them to perform the deletion
+    login_user(user)
+
+    service = LinkService()
+    response, status = service.delete_link(link_id=17, family_id=family.family_id, user_id=user.user_id)
+    assert status == HTTPStatus.NOT_FOUND
+    assert response["message"] == "Link not found"
 
 def test_delete_link_database_sqlalchemy_error(session, test_user_1, monkeypatch):
     """
@@ -258,7 +237,9 @@ def test_delete_link_database_sqlalchemy_error(session, test_user_1, monkeypatch
     # Mock the database delete method to simulate a sqlalchemy error during link deletion
     monkeypatch.setattr(service.db, "delete", mock_delete)
 
-    response, status = service.delete_link(link.link_id)
+    response, status = service.delete_link(link_id=link.link_id,
+                                           family_id=family.family_id,
+                                           user_id=test_user_1.user_id, )
 
     assert status == HTTPStatus.INTERNAL_SERVER_ERROR
     assert response["message"] == "Database error occurred while deleting link"
@@ -302,7 +283,9 @@ def test_delete_link_error(session, test_user_1, monkeypatch):
     # Mock the database delete method to simulate an exception error during link deletion
     monkeypatch.setattr(service.db, "delete", mock_delete)
 
-    response, status = service.delete_link(link.link_id)
+    response, status = service.delete_link(link_id=link.link_id,
+                                           family_id=family.family_id,
+                                           user_id=test_user_1.user_id, )
 
     assert status == HTTPStatus.INTERNAL_SERVER_ERROR
     assert response["message"] == "Unexpected error while deleting link"

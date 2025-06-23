@@ -3,7 +3,6 @@ from app.extensions import db
 from app.utils import auth_s
 from app.family.services import FamilyService
 from app.services.service_base import service_response
-from flask_login import current_user
 from typing import Tuple, Union, Optional
 from http import HTTPStatus
 from sqlalchemy.exc import SQLAlchemyError
@@ -58,24 +57,26 @@ class LinkService:
                 None
             )
 
-    def delete_link(self, link_id: int) -> Tuple[dict, int]:
-
-        if not current_user or  not current_user.is_authenticated:
-            return service_response(
-                HTTPStatus.UNAUTHORIZED,
-                "Authentication required to delete links",
-                "danger",
-                None
-            )
+    def delete_link(self, link_id: int, family_id: int, user_id: int) -> Tuple[dict, int]:
         try:
-            link = self.db.query(Link).filter_by(link_id=link_id).first()
+            family_response = self.family_service.get_family_by_id(family_id, user_id)
+            family_data, family_status_code = family_response
+            print(family_response)
+            if family_status_code == HTTPStatus.NOT_FOUND:
+                return service_response(HTTPStatus.NOT_FOUND, "No Family found with this link", "warning", None)
+            elif family_status_code == HTTPStatus.FORBIDDEN:
+                return service_response(HTTPStatus.FORBIDDEN, "You do not have permission to delete this link", "danger", None)
+            elif family_status_code == HTTPStatus.INTERNAL_SERVER_ERROR:
+                return family_response
+
+            family = family_data.get("data")
+
+            link = family.links[0] if family.links else None
+
             if not link:
                 return service_response(HTTPStatus.NOT_FOUND, "Link not found", "warning", None)
-            
-            if not self.family_service.family_belongs_to_user(
-                family_id=link.family_id, 
-                user_id=current_user.user_id
-            ):
+
+            if link.link_id != link_id:
                 return service_response(
                     HTTPStatus.FORBIDDEN,
                     "You do not have permission to delete this link",

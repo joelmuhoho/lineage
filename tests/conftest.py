@@ -5,6 +5,7 @@ from config import TestConfig
 from app.models import Family, User, Event, Link, Member
 from datetime import datetime
 from app.utils.constants import Gender
+from typing import Union
 
 
 @pytest.fixture(scope='function')
@@ -84,6 +85,24 @@ def session(db):
     connection.close()
     db.session.remove()
 
+def clean_up(session, obj: Union[Family, User, Member, Link, Event], obj_id: int):
+    """
+    Deletes a given object from the session and commits the changes if the object
+    exists in the session. The function checks the existence of the object by its
+    class and ID before performing the deletion and commit.
+
+    Args:
+        session: Database session used for object querying and manipulation.
+        obj (Union[Family, User, Member, Link, Event]): The object intended for
+            deletion from the session.
+        obj_id (int): The unique identifier of the object to validate its
+            existence in the session.
+    """
+    class_name = type(obj)
+    if session.get(class_name, obj_id):
+        session.delete(obj)
+        session.commit()
+
 @pytest.fixture
 def test_family_1(session):
     """
@@ -101,8 +120,7 @@ def test_family_1(session):
     session.add(family)
     session.commit()
     yield family
-    session.delete(family)
-    session.commit()
+    clean_up(session, family, family.family_id)
 
 @pytest.fixture
 def test_family_2(session):
@@ -121,8 +139,7 @@ def test_family_2(session):
     session.add(family)
     session.commit()
     yield family
-    session.delete(family)
-    session.commit()
+    clean_up(session, family, family.family_id)
 
 @pytest.fixture
 def test_guest_user_1(session, app):
@@ -151,8 +168,7 @@ def test_guest_user_1(session, app):
     session.add(guest_user)
     session.commit()
     yield guest_user
-    session.delete(guest_user)
-    session.commit()
+    clean_up(session, guest_user, guest_user.user_id)
 
 @pytest.fixture
 def test_user_1(session):
@@ -173,8 +189,7 @@ def test_user_1(session):
     session.add(user)
     session.commit()
     yield user
-    session.delete(user)
-    session.commit()
+    clean_up(session, user, user.user_id)
 
 @pytest.fixture
 def test_user_2(session):
@@ -192,8 +207,7 @@ def test_user_2(session):
     session.add(user)
     session.commit()
     yield user
-    session.delete(user)
-    session.commit()
+    clean_up(session, user, user.user_id)
 
 @pytest.fixture
 def test_event_1(session, test_family_1):
@@ -228,9 +242,7 @@ def test_event_1(session, test_family_1):
     session.add(event)
     session.commit()
     yield event
-    if session.get(Event, event.event_id):
-        session.delete(event)
-        session.commit()
+    clean_up(session, event, event.event_id)
 
 @pytest.fixture
 def test_event_2(session, test_family_2):
@@ -265,9 +277,7 @@ def test_event_2(session, test_family_2):
     session.add(event)
     session.commit()
     yield event
-    if session.get(Event, event.event_id):
-        session.delete(event)
-        session.commit()
+    clean_up(session, event, event.event_id)
 
 @pytest.fixture
 def test_link_1(session, test_family_1):
@@ -283,8 +293,7 @@ def test_link_1(session, test_family_1):
     session.add(link)
     session.commit()
     yield link
-    session.delete(link)
-    session.commit()
+    clean_up(session, link, link.link_id)
 
 @pytest.fixture
 def test_member_1(session, test_family_1):
@@ -307,7 +316,7 @@ def test_member_1(session, test_family_1):
     session.add(member)
     session.commit()
     yield member
-    session.delete(member)
+    clean_up(session, member, member.member_id)
 
 @pytest.fixture
 def test_member_2(session, test_family_1):
@@ -328,7 +337,7 @@ def test_member_2(session, test_family_1):
     session.add(member)
     session.commit()
     yield member
-    session.delete(member)
+    clean_up(session, member, member.member_id)
 
 @pytest.fixture
 def test_member_3(session, test_family_1):
@@ -353,7 +362,7 @@ def test_member_3(session, test_family_1):
     session.add(member)
     session.commit()
     yield member
-    session.delete(member)
+    clean_up(session, member, member.member_id)
 
 @pytest.fixture
 def test_user_and_family(test_user_1, test_family_1, session):
