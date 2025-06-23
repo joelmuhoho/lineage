@@ -61,8 +61,13 @@ class LinkService:
         try:
             family_response = self.family_service.get_family_by_id(family_id, user_id)
             family_data, family_status_code = family_response
-            if family_status_code != HTTPStatus.OK:
-                return family_data, family_status_code
+            print(family_response)
+            if family_status_code == HTTPStatus.NOT_FOUND:
+                return service_response(HTTPStatus.NOT_FOUND, "No Family found with this link", "warning", None)
+            elif family_status_code == HTTPStatus.FORBIDDEN:
+                return service_response(HTTPStatus.FORBIDDEN, "You do not have permission to delete this link", "danger", None)
+            elif family_status_code == HTTPStatus.INTERNAL_SERVER_ERROR:
+                return family_response
 
             family = family_data.get("data")
 
