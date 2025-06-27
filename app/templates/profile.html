@@ -32,7 +32,18 @@
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <h3 class="text-xl font-semibold text-gray-800 mb-4">Profile Details</h3>
                 <p class="text-gray-600 mb-2">Full Name: <strong>{{ current_user.name }}</strong></p>
-                <p class="text-gray-600 mb-2">Email: <strong>{{ current_user.email }}</strong></p>
+                <p class="text-gray-600 mb-2">
+                    Email: <strong>{{ current_user.email }}</strong>
+                    {% if not current_user.emailVerify %}
+                    <div class="inline-block relative">
+                        <button onclick="verifyEmail()" id="verifyEmailBtn" class="text-yellow-400 hover:text-yellow-500">
+                            Verify Email
+                        </button>
+                        <p id="verifyEmailError" class="hidden text-red-500 text-sm absolute -bottom-6 left-0 whitespace-nowrap"></p>
+                    </div>
+                    {% endif %}
+                </p>
+
             </div>
 
             <!-- Family Management Card -->
@@ -155,5 +166,46 @@
     function hideDeleteConfirmation() {
         document.getElementById('deleteConfirmation').classList.add('hidden');
     }
+
+    // Verify Email
+    async function verifyEmail() {
+        const button = document.getElementById('verifyEmailBtn');
+        const errorElement = document.getElementById('verifyEmailError');
+
+        // Disable button and show loading state
+        button.disabled = true;
+        button.textContent = 'Sending...';
+        errorElement.classList.add('hidden');
+
+        try {
+            const response = await fetch('/api/verify-email', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to send verification email');
+            }
+
+            // Success - replace button with a success message
+            button.textContent = 'Verification email sent!';
+            button.classList.remove('text-yellow-400', 'hover:text-yellow-500');
+            button.classList.add('text-green-500');
+
+        } catch (error) {
+            // Show error message
+            errorElement.textContent = error.message;
+            errorElement.classList.remove('hidden');
+
+            // Reset button
+            button.disabled = false;
+            button.textContent = 'Verify Email';
+        }
+    }
+
 </script>
 {% endblock %}
