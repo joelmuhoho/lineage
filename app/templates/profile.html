@@ -34,14 +34,14 @@
                 <p class="text-gray-600 mb-2">Full Name: <strong>{{ current_user.name }}</strong></p>
                 <p class="text-gray-600 mb-2">
                     Email: <strong>{{ current_user.email }}</strong>
-                    {% if not current_user.emailVerify %}
-                    <div class="inline-block relative">
-                        <button onclick="verifyEmail()" id="verifyEmailBtn" class="text-yellow-400 hover:text-yellow-500">
-                            Verify Email
-                        </button>
-                        <p id="verifyEmailError" class="hidden text-red-500 text-sm absolute -bottom-6 left-0 whitespace-nowrap"></p>
-                    </div>
-                    {% endif %}
+{#                    {% if not current_user.emailVerify %}#}
+{#                    <div class="inline-block relative">#}
+{#                        <button onclick="verifyEmail()" id="verifyEmailBtn" class="text-yellow-400 hover:text-yellow-500">#}
+{#                            Verify Email#}
+{#                        </button>#}
+{#                        <p id="verifyEmailError" class="hidden text-red-500 text-sm absolute -bottom-6 left-0 whitespace-nowrap"></p>#}
+{#                    </div>#}
+{#                    {% endif %}#}
                 </p>
 
             </div>

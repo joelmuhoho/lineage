@@ -51,65 +51,65 @@ def edit_profile():
 #     sendEmailVerificationLink(user)
 #     return redirect(url_for('user.user_profile'))
 
-@user_bp.route('/api/verify-email', methods=['POST'])
-@login_required
-def verify_email():
-    try:
-        user_service = UserService()
-        data, status = user_service.get_user(user_id=current_user.user_id)
-
-        if status != 200:
-            return jsonify({
-                'success': False,
-                'message': data.get('message', 'Failed to verify user')
-            }), status
-
-        user = data.get('data')
-        # Send verification email
-        success, error = send_email_verification_link(user)
-
-        if success:
-            return jsonify({
-                'success': True,
-                'message': 'Verification email sent successfully'
-            }), 200
-        else:
-            print(f"Route: Failed to send verification email: {error}")
-            return jsonify({
-                'success': False,
-                'message': 'Failed to send verification email'
-            }), 500
-
-    except Exception as e:
-        print(f"An error occurred while sending verification email: {str(e)}")
-        return jsonify({
-            'success': False,
-            'message': 'An error occurred while sending verification email'
-        }), 500
-
-
-@user_bp.route('/verify_email/<token>')
-def update_verify_email(token):
-    user_service = UserService()
-
-    auth_s = URLSafeSerializer(current_app.config["SECRET_KEY"], current_app.config["SALT"])
-    data = auth_s.loads(token)
-
-    user_id = data["user_id"]
-
-    if user_id:
-        data, status = user_service.get_user(user_id=user_id)
-        if status != 200:
-            message, category = data.get('message'), data.get('category')
-            flash(message, category)
-            return redirect(url_for('auth.login'))
-
-        user = data.get('data')
-        data, status = user_service.update_user(user, emailVerify=True)
-        if status != 200:
-            message, category = data.get('message'), data.get('category')
-            flash(message, category)
-            return redirect(url_for('auth.login'))
-        message, category = data.get('message'), data.get('category')
-        flash(message, category)
-    return redirect(url_for('auth.login'))
+# @user_bp.route('/api/verify-email', methods=['POST'])
+# @login_required
+# def verify_email():
+#     try:
+#         user_service = UserService()
+#         data, status = user_service.get_user(user_id=current_user.user_id)
+#
+#         if status != 200:
+#             return jsonify({
+#                 'success': False,
+#                 'message': data.get('message', 'Failed to verify user')
+#             }), status
+#
+#         user = data.get('data')
+#         # Send verification email
+#         success, error = send_email_verification_link(user)
+#
+#         if success:
+#             return jsonify({
+#                 'success': True,
+#                 'message': 'Verification email sent successfully'
+#             }), 200
+#         else:
+#             print(f"Route: Failed to send verification email: {error}")
+#             return jsonify({
+#                 'success': False,
+#                 'message': 'Failed to send verification email'
+#             }), 500
+#
+#     except Exception as e:
+#         print(f"An error occurred while sending verification email: {str(e)}")
+#         return jsonify({
+#             'success': False,
+#             'message': 'An error occurred while sending verification email'
+#         }), 500
+#
+#
+# @user_bp.route('/verify_email/<token>')
+# def update_verify_email(token):
+#     user_service = UserService()
+#
+#     auth_s = URLSafeSerializer(current_app.config["SECRET_KEY"], current_app.config["SALT"])
+#     data = auth_s.loads(token)
+#
+#     user_id = data["user_id"]
+#
+#     if user_id:
+#         data, status = user_service.get_user(user_id=user_id)
+#         if status != 200:
+#             message, category = data.get('message'), data.get('category')
+#             flash(message, category)
+#             return redirect(url_for('auth.login'))
+#
+#         user = data.get('data')
+#         data, status = user_service.update_user(user, emailVerify=True)
+#         if status != 200:
+#             message, category = data.get('message'), data.get('category')
+#             flash(message, category)
+#             return redirect(url_for('auth.login'))
+#         message, category = data.get('message'), data.get('category')
+#         flash(message, category)
+#     return redirect(url_for('auth.login'))
