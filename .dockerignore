@@ -1,0 +1,38 @@
+# sqlitedb files
+*.db
+/instance/*.db
+
+
+# SQL files
+*.sql
+
+# Python cache files
+__pycache__
+*.pyc
+
+# environment files
+.env
+
+# virtual environment directories
+venv/
+.env/
+.venv/
+
+# git files
+.git
+.gitignore
+
+# IDE files
+.idea/
+.vscode/
+
+# Docker files
+Dockerfile
+docker-compose.yml
+
+# compressed files
+*.zip
+*.tar.gz
+
+# logs
+*.log
