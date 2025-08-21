@@ -6,3 +6,15 @@ __pycache__
 *tumamail*
 *.db
 *.zip
+
+# IDE and Editor specific files
+.idea/
+
+# database files
+*.sqlite3
+*.sqlite
+*.db
+instance/
+
+# temp test files
+.coverage
