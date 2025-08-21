@@ -12,7 +12,8 @@ on:
       - master
 
 jobs:
-  build-test:
+  run-test:
+    name: Run Tests
     runs-on: ubuntu-latest
     env:
       GUEST_NAME: ${{ secrets.GUEST_NAME }}
