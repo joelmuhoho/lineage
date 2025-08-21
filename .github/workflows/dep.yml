@@ -17,4 +17,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "building docker image"
-        run: echo "Building Docker image..."
+        run: |
+          echo "Building Docker image..."
+          ls -al
