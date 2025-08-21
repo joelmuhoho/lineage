@@ -14,6 +14,10 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+    env:
+      GUEST_NAME: ${{ secrets.GUEST_NAME }}
+      GUEST_EMAIL: ${{ secrets.GUEST_EMAIL }}
+      GUEST_PASSWORD: ${{ secrets.GUEST_PASSWORD }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
