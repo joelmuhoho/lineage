@@ -31,7 +31,6 @@ function getSpouse(event) {
 
           if (login) {
             addBtn = `<a href="/member/${id}/${spouse.member_id}/child" class="btn btn-light btn-sm">+ Child</a> |`;
-            console.log("logedin");
           }
 
           $(`#spouse_${id}`).append(
@@ -99,7 +98,6 @@ function getChildren(event) {
           let alive = "";
           if (login) {
             addBtn = `<a href="/member/${child.member_id}/spouse" class="btn btn-light btn-sm">+ spouse</a> |`;
-            console.log("logedin");
           }
           if (!child.alive) {
             alive = "deceased";
