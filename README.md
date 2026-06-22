@@ -4,11 +4,15 @@
 
 Welcome to Lineage, a digital space dedicated to strengthening family connections and preserving precious memories. Inspired by the desire to bridge the gaps created by time and distance, Lineage provides a platform to create, explore, and cherish family trees, events, and shared moments.
 
-**Project Links:**
 
-- [Lineage](https://lineage.joelmuhoho.com/)
-- [Final Project Blog](https://medium.com/@joel_Muhoho/lineage-a-journey-into-family-roots-and-connections-3bc375684455)
-- Author: [Joel Muhoho](https://www.linkedin.com/in/joelmuhoho/)
+**Lineage Documentations:**
+- [Case Study](./docs/case_study.md)
+- [Architecture diagram](./docs/architecture_diagram.md)
+- [Entity Relationship Diagram](./docs/entity_relationship_diagram.md)
+- [Lineage Blog](https://medium.com/@joel_Muhoho/lineage-a-journey-into-family-roots-and-connections-3bc375684455)
+
+**Lineage Live demo:**
+- [Lineage live link](https://lineage.joelmuhoho.com/)
 
 ## Installation
 
