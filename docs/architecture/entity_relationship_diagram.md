@@ -1,4 +1,4 @@
-# Lineage Entity Relationship Diagram (ERD)
+## Lineage Entity Relationship Diagram (ERD)
 
 **Entity Relationship Diagram (ERD)**
 ```mermaid
