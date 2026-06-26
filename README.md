@@ -27,7 +27,7 @@ Lineage follows a modular, monolithic architecture using Flask Blueprints to sep
 
 For deep dives into the system design, please refer to our documentation directory:
 * [Application Flow](./docs/architecture/application_flow.md)
-* [Database Entity Relationship Diagram (ERD)](./docs/architecture/database_erd.md)
+* [Database Entity Relationship Diagram (ERD)](./docs/architecture/entity_relationship_diagram.md)
 * [Deployment & AWS Infrastructure](./docs/architecture/deployment_aws.md)
 * [Security & Scalability](./docs/infrastructure/security_and_scalability.md)
 
