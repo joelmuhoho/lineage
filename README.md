@@ -1,57 +1,103 @@
 # Lineage
+**Lineage** is a digital space dedicated to strengthening family connections and preserving precious memories.
 
-## Introduction
+[Live Demo](https://lineage.joelmuhoho.com/) | [Read the Case Study](https://medium.com/@joel_Muhoho/lineage-a-journey-into-family-roots-and-connections-3bc375684455)
 
-Welcome to Lineage, a digital space dedicated to strengthening family connections and preserving precious memories. Inspired by the desire to bridge the gaps created by time and distance, Lineage provides a platform to create, explore, and cherish family trees, events, and shared moments.
+## Problem Statement
+As families expand and geographic distances grow, keeping track of family history, coordinating events, and preserving shared memories becomes increasingly difficult. Traditional methods often rely on fragmented social media groups or physical records that are susceptible to being lost or forgotten.
 
-**Project Links:**
+## Solution
+Lineage is a comprehensive digital platform designed to be a centralized hub for families. It allows users to intuitively map out their family trees, securely record vital dates and relationships, and coordinate family events within a private, authenticated space.
 
-- [Lineage](https://lineage.joelmuhoho.com/)
-- [Final Project Blog](https://medium.com/@joel_Muhoho/lineage-a-journey-into-family-roots-and-connections-3bc375684455)
-- Author: [Joel Muhoho](https://www.linkedin.com/in/joelmuhoho/)
+## Features
+* **Interactive Family Tree:** Visually explore and manage complex family dynamics (roots, parents, children, spouses).
+* **Event Planning:** Plan, track, and organize upcoming and past family events with location and date tracking.
+* **Role-Based Access & Privacy:** Secure authentication system ensuring family data is only visible to authorized members.
+* **Shareable Links:** Generate secure, tokenized links to invite family members to explore the tree.
+* **Responsive UI:** Built with TailwindCSS for a seamless experience on both desktop and mobile.
 
-## Installation
+## Technologies Used
+* **Backend:** Python, Flask, SQLAlchemy (ORM)
+* **Database:** SQLite (Development) / PostgreSQL (Production ready)
+* **Frontend:** HTML5, Jinja2, TailwindCSS, JavaScript, jQuery
+* **Testing & CI:** Pytest, GitHub Actions
 
-To get started with Lineage on your local machine, follow these simple steps:
+## Architecture Overview
+Lineage follows a modular, monolithic architecture using Flask Blueprints to separate concerns (`auth`, `family`, `member`, `event`, `link`).
 
-1. Clone the repository:
+For deep dives into the system design, please refer to our documentation directory:
+* [Application Flow](./docs/architecture/application_flow.md)
+* [Database Entity Relationship Diagram (ERD)](./docs/architecture/database_erd.md)
+* [Deployment & AWS Infrastructure](./docs/architecture/deployment_aws.md)
+* [Security & Scalability](./docs/infrastructure/security_and_scalability.md)
+
+## Setup Instructions
+
+### Prerequisites
+* Python 3.11+
+* Git
+
+### Local Development
+1. **Clone the repository:**
    ```bash
-   git clone https://github.com/joekariuki3/lineage.git
-   ```
-2. Navigate to the project directory:
-   ```bash
+   git clone https://github.com/joelmuhoho/lineage.git
+
    cd lineage
    ```
-3. Install dependencies:
-   ```bah
-   pip install -r requirements.txt
+
+2. **Set up a virtual environment (Recommended):**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+
    ```
-4. Set up the database
+
+
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+
+   ```
+
+
+4. **Environment Variables:**
+Create a `.env` file in the root directory. Use `.env.example` as a template:
+   ```env
+   FLASK_APP=run.py
+   FLASK_ENV=development
+   SECRET_KEY=your_secure_secret_key
+   LINEAGE_DATABASE_URI=sqlite:///lineage.db
+
+   ```
+
+
+5. **Initialize the Database:**
    ```bash
    flask db init
-   flask db migrate
+   flask db migrate -m "Initial migration"
    flask db upgrade
+
    ```
-5. Run the application
+
+
+6. **Run the application:**
    ```bash
-   flask run
+   flask run --port=5001
+
    ```
+7. Access the app at `http://localhost:5001`.
 
-## Usage
+### Running Tests
 
-Lineage empowers you to:
+Lineage uses `pytest` for unit and integration testing.
 
-- Build and explore detailed family trees.
-- Plan and organize family events.
-- Share and reminisce over photos, videos, and memories.
-- Connect with family members in a digital space.
+```bash
+pytest
 
-## Contributing
+```
 
-We welcome contributions from the community. If you'd like to enhance Lineage, please follow these steps:
+## Lessons Learned
 
-- Fork the repository.
-- Create a new branch for your feature: git checkout -b feature-name
-- Commit your changes: git commit -m 'Add a new feature'
-- Push to the branch: git push origin feature-name
-- Submit a pull request.
+* **Complex Data Modeling:** Designing a self-referential database schema for family trees required strict application-level validation to prevent logical loops (e.g., a child cannot be older than a parent).
+* **State Management:** Managing complex nested UI states (like expanding/collapsing family nodes) taught valuable lessons in combining server-side rendering (Jinja2) with asynchronous JavaScript (AJAX).
+* **Security First:** Implementing secure JWT tokens for password resets and shareable links reinforced the importance of stateless, time-bound authentication.

@@ -1,4 +1,4 @@
-# Lineage Architecture Diagram
+## Lineage Architecture Diagram
 
 **Application Architecture Diagram**
 ```mermaid
